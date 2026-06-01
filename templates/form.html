@@ -75,6 +75,10 @@
         </div>
       </div>
 
+      <label>Special music <span class="hint">optional — text after &ldquo;SPECIAL MUSIC~ &rdquo;; blank prints just &ldquo;SPECIAL MUSIC&rdquo;</span>
+        <input type="text" data-key="weekly.special_music" value="{{ data.weekly.special_music }}">
+      </label>
+
       <div class="grid two">
         <label>Preacher
           <input type="text" data-key="weekly.preacher" value="{{ data.weekly.preacher }}">
@@ -160,11 +164,15 @@
     <section class="card">
       <h2>Coming Events</h2>
       {% for parish in ["grace", "zion"] %}
+      {% if parish == "zion" %}
+      <label>Between Grace &amp; Zion <span class="hint">optional, multi-line</span>
+        <textarea data-key="weekly.between_events" rows="2">{{ data.weekly.between_events }}</textarea>
+      </label>
+      {% endif %}
       <div class="parish">
         <div class="subhead">{{ parish|capitalize }}</div>
-        <label>Banner <span class="hint">optional line above the days</span>
-          <input type="text" data-key="weekly.{{ parish }}_events_banner"
-                 value="{{ data.weekly[parish + '_events_banner'] }}">
+        <label>Banner <span class="hint">optional, multi-line — above the days</span>
+          <textarea data-key="weekly.{{ parish }}_events_banner" rows="2">{{ data.weekly[parish + '_events_banner'] }}</textarea>
         </label>
         <div class="events" data-events="weekly.{{ parish }}_events">
           {% for day, items in data.weekly[parish + "_events"] %}
@@ -189,6 +197,9 @@
         <button type="button" class="btn small add-day" data-parish="{{ parish }}">+ Add day</button>
       </div>
       {% endfor %}
+      <label>Below Zion <span class="hint">optional, multi-line</span>
+        <textarea data-key="weekly.below_events" rows="2">{{ data.weekly.below_events }}</textarea>
+      </label>
     </section>
 
     <!-- ===================== INSERT ===================== -->

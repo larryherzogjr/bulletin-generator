@@ -63,15 +63,19 @@ def blank_blob() -> dict:
             "opening_hymn": {"grace": "", "title": "", "zion": ""},
             "sermon_hymn": {"grace": "", "title": "", "zion": ""},
             "closing_hymn": {"grace": "", "title": "", "zion": ""},
+            "special_music": "",   # optional text after "SPECIAL MUSIC~ "
             # after the closing hymn:
             "confirmation": {"enabled": False, "text": ""},
             "communion": {"enabled": False, "grace": False, "zion": False},
             "preacher": "",
             "sermon_text": "",
-            "grace_events_banner": "",
+            # Free-form notes around the events lists (all optional, multi-line).
+            "grace_events_banner": "",   # top of "Coming Events at Grace"
             "grace_events": [],
-            "zion_events_banner": "",
+            "between_events": "",        # between the Grace and Zion sections
+            "zion_events_banner": "",    # top of "Coming Events at Zion"
             "zion_events": [],
+            "below_events": "",          # below the Zion section
         },
         "standing": {
             "service_title": "",
@@ -187,8 +191,10 @@ def normalize_blob(blob: dict) -> dict:
 
     w = b["weekly"]
     for k in ("liturgical_day", "date", "call_to_worship", "order_of_service",
-              "preacher", "sermon_text", "memory_verse_ref", "memory_verse_text",
-              "grace_events_banner", "zion_events_banner"):
+              "special_music", "preacher", "sermon_text",
+              "memory_verse_ref", "memory_verse_text",
+              "grace_events_banner", "between_events",
+              "zion_events_banner", "below_events"):
         w[k] = _s(w_in.get(k))
     # Confession of Faith: one of CREEDS, or "" for "None" (renders the heading
     # alone, no "~ Creed" suffix). Any other value falls back to the default.

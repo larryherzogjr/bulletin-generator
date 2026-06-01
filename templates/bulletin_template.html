@@ -60,7 +60,7 @@
   /* ---- Coming events (right) ---- */
   .events-head { font-weight: 700; text-align: center; margin: 0 0 calc(8pt * var(--s)); }
   .events-head.second { margin-top: calc(22pt * var(--s)); }
-  .banner { font-weight: 700; margin: calc(6pt * var(--s)) 0; }
+  .banner { font-weight: 700; margin: calc(6pt * var(--s)) 0; white-space: pre-line; }
   .day { font-weight: 700; margin-top: calc(7pt * var(--s)); }
   .ev { display: flex; justify-content: space-between; padding-left: 14pt; }
   .ev .name { padding-right: 8pt; }
@@ -110,7 +110,7 @@
     </div>
 
     <div class="label">CONFESSION OF FAITH{% if w.confession_of_faith %}~ {{ w.confession_of_faith }}{% endif %}</div>
-    <div class="label-tight">SPECIAL MUSIC</div>
+    <div class="label-tight">SPECIAL MUSIC{% if w.special_music %}~ {{ w.special_music }}{% endif %}</div>
     <div class="label-tight">OFFERING</div>
 
     <div class="hymn">
@@ -168,6 +168,8 @@
       <span class="lead">Listen Live!</span> {{ s.listen_live }}
     </div>
 
+    {% if w.between_events %}<div class="banner">{{ w.between_events }}</div>{% endif %}
+
     <div class="events-head second">COMING EVENTS AT ZION</div>
     {% if w.zion_events_banner %}<div class="banner">{{ w.zion_events_banner }}</div>{% endif %}
     {% for day, items in w.zion_events %}
@@ -176,6 +178,8 @@
         <div class="ev"><span class="name">{{ name }}</span><span class="time">{{ time }}</span></div>
       {% endfor %}
     {% endfor %}
+
+    {% if w.below_events %}<div class="banner">{{ w.below_events }}</div>{% endif %}
   </div>
 
 </div>

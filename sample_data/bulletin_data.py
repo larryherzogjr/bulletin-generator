@@ -37,6 +37,7 @@ WEEKLY = {
     "confirmation": {"enabled": False, "text": ""},
     "communion": {"enabled": False, "grace": False, "zion": False},
 
+    "special_music": "",   # optional text rendered after "SPECIAL MUSIC~ "
     "preacher": "Pastor Dennis Norby",
     "sermon_text": "Genesis 1:1-2:4a (G-pg 1; Z-pg 1)",
 
@@ -51,11 +52,13 @@ WEEKLY = {
         ("Sunday, June 7",    [("Lake Chapel", "9:00 AM"),
                                 ("Divine Worship with Holy Communion", "10:30 AM")]),
     ],
+    "between_events": "",
     "zion_events_banner": "",
     "zion_events": [
         ("Wednesday, June 3", [("Adult Bible Study at Grace", "7:00 PM")]),
         ("Sunday, June 7",    [("Divine Worship with Holy Communion", "9:00 AM")]),
     ],
+    "below_events": "",
 }
 
 STANDING = {
