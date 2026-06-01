@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: 11in 8.5in;   /* flat sheet: landscape letter, folds to 5.5 x 8.5 */
+    margin: 0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.18;
+    color: #000;
+  }
+
+  .sheet { display: flex; width: 11in; height: 8.5in; }
+
+  /* Each panel = one half of the folded bulletin. */
+  .panel {
+    width: 5.5in;
+    height: 8.5in;
+    padding: 0.40in 0.40in 0.30in 0.40in;  /* t r b l */
+  }
+  .panel.left  { padding-right: 0.48in; }   /* extra room toward the fold */
+  .panel.right { padding-left: 0.48in; }
+
+  .center { text-align: center; }
+  .b { font-weight: 700; }
+  .i { font-style: italic; }
+  hr.rule { border: none; border-top: 1px solid #000; margin: 7pt 0; }
+
+  /* ---- Order of worship (left) ---- */
+  .title  { font-size: 13pt; font-weight: 700; text-align: center; }
+  .subttl { font-weight: 700; text-align: center; }
+  .label  { font-weight: 700; text-align: center; margin-top: 8pt; }
+  .label-tight { font-weight: 700; text-align: center; }
+
+  .hymn { margin-top: 8pt; }
+  .hymn .grace { display: inline-block; }
+  .hymn .htitle { margin-left: 28pt; }
+  .hymn .zion { display: block; }
+
+  .para { margin-top: 8pt; text-align: justify; }
+  .para .lead { font-weight: 700; }
+
+  .contact { text-align: center; margin-top: 4pt; }
+  .contact .row { font-weight: 700; }
+  .contact .staff { margin-top: 2pt; }
+  .contact .staff .name { font-weight: 700; }
+
+  /* ---- Coming events (right) ---- */
+  .events-head { font-weight: 700; text-align: center; margin: 0 0 8pt; }
+  .events-head.second { margin-top: 22pt; }
+  .banner { font-weight: 700; margin: 6pt 0; }
+  .day { font-weight: 700; margin-top: 7pt; }
+  .ev { display: flex; justify-content: space-between; padding-left: 14pt; }
+  .ev .name { padding-right: 8pt; }
+  .ev .time { white-space: nowrap; }
+  .radio { margin-top: 14pt; }
+  .radio .lead { font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ============ LEFT PANEL: ORDER OF WORSHIP ============ -->
+  <div class="panel left">
+    <div class="title">{{ s.service_title }}</div>
+    <div class="subttl">{{ w.liturgical_day }}~{{ w.date }}</div>
+    <div class="subttl">{{ s.welcome }}</div>
+    <hr class="rule">
+
+    <div class="label-tight">PRELUDE</div>
+    {% for who, names in w.prelude %}
+      <div class="center">{{ who }}~{{ names }}</div>
+    {% endfor %}
+    <div class="label-tight">ANNOUNCEMENTS ~ Opening Prayer</div>
+    <div class="label-tight">Call to Worship ~ {{ w.call_to_worship }}</div>
+
+    <div class="hymn">
+      <span class="grace">Grace #{{ w.opening_hymn.grace }}</span>
+      <span class="htitle">&ldquo;{{ w.opening_hymn.title }}&rdquo;</span>
+      <span class="zion">Zion #{{ w.opening_hymn.zion }}</span>
+    </div>
+
+    <div class="label">ORDER OF SERVICE</div>
+    <div class="center">{{ w.order_of_service|safe }}</div>
+    <div class="label-tight">CONFESSION OF SIN</div>
+
+    <div class="para"><span class="lead">MEMORY VERSE:</span>
+      {{ w.memory_verse_text|safe }} {{ w.memory_verse_ref }}</div>
+
+    <div class="para"><span class="lead">SCRIPTURE LESSONS</span>
+      {% for ref, pgs in w.scripture_lessons %}
+        {{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="label">CONFESSION OF FAITH~ {{ w.confession_of_faith }}</div>
+    <div class="label-tight">SPECIAL MUSIC</div>
+    <div class="label-tight">OFFERING</div>
+
+    <div class="hymn">
+      <span class="grace">Grace #{{ w.sermon_hymn.grace }}</span>
+      <span class="htitle">&ldquo;{{ w.sermon_hymn.title }}&rdquo;</span>
+      <span class="zion">Zion #{{ w.sermon_hymn.zion }}</span>
+    </div>
+
+    <div class="label-tight">{{ w.preacher }}</div>
+    <div class="center">{{ w.sermon_text }}</div>
+
+    <div class="hymn">
+      <span class="grace">Grace #{{ w.closing_hymn.grace }}</span>
+      <span class="htitle">&ldquo;{{ w.closing_hymn.title }}&rdquo;</span>
+      <span class="zion">Zion #{{ w.closing_hymn.zion }}</span>
+    </div>
+
+    <div class="label-tight">LORD&rsquo;S PRAYER AND BENEDICTION</div>
+    <div class="label-tight">THREE-FOLD AMEN - DOXOLOGY</div>
+
+    <hr class="rule">
+    <div class="contact">
+      <div class="row">{{ s.office_hours }}</div>
+      {% for line in s.contact_lines %}<div class="row">{{ line }}</div>{% endfor %}
+      {% for name, detail in s.staff %}
+        <div class="staff"><span class="name">{{ name }}</span> {{ detail }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ============ RIGHT PANEL: COMING EVENTS ============ -->
+  <div class="panel right">
+    <div class="events-head">COMING EVENTS AT GRACE</div>
+    {% if w.grace_events_banner %}<div class="banner">{{ w.grace_events_banner }}</div>{% endif %}
+    {% for day, items in w.grace_events %}
+      <div class="day">{{ day }}</div>
+      {% for name, time in items %}
+        <div class="ev"><span class="name">{{ name }}</span><span class="time">{{ time }}</span></div>
+      {% endfor %}
+    {% endfor %}
+
+    <div class="radio">
+      <span class="lead">Sundays:</span> {{ s.radio|safe }}<br>
+      <span class="lead">Listen Live!</span> {{ s.listen_live }}
+    </div>
+
+    <div class="events-head second">COMING EVENTS AT ZION</div>
+    {% if w.zion_events_banner %}<div class="banner">{{ w.zion_events_banner }}</div>{% endif %}
+    {% for day, items in w.zion_events %}
+      <div class="day">{{ day }}</div>
+      {% for name, time in items %}
+        <div class="ev"><span class="name">{{ name }}</span><span class="time">{{ time }}</span></div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+</div>
+</body>
+</html>

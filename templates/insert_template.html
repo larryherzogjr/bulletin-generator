@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: 5.5in 8.5in; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+    font-size: 10pt; line-height: 1.16; color: #000;
+  }
+  .page { width: 5.5in; height: 8.5in; padding: 0.36in 0.40in 0.30in 0.40in; }
+  .page.back { break-before: page; }
+  .b { font-weight: 700; }
+  .serif { font-family: "Liberation Serif", "Times New Roman", Times, serif; }
+
+  /* ---- Prayer box ---- */
+  .praybox {
+    border: 1px dotted #000; padding: 7pt 8pt;
+    font-family: "Liberation Serif", "Times New Roman", Times, serif;
+    font-size: 8.5pt; line-height: 1.2;
+  }
+  .prayhead { display: flex; align-items: flex-start; gap: 8pt; }
+  .prayhead .label { flex: 0 0 76pt; font-style: italic; font-weight: 700;
+                     text-align: center; line-height: 1.05; font-size: 11pt;
+                     padding: 6pt 2pt; background: #eee; border: 1px dotted #999; }
+  .prayhead .firstpara { flex: 1; margin: 0; text-align: justify; }
+  .praybox p { margin: 5pt 0 0; text-align: justify; }
+  .praybox .tag { font-weight: 700; }
+  .sick { font-style: italic; font-weight: 700; }
+
+  /* ---- Below the box (sans) ---- */
+  .readings { margin-top: 9pt; }
+  .readings .head { } /* plain */
+  .ann { margin-top: 10pt; }
+  .ann .head { font-weight: 700; }
+  .ann .body { text-align: justify; }
+  .bold-notes { margin-top: 12pt; font-weight: 700; }
+  .bold-notes div { margin-bottom: 1pt; }
+
+  /* ---- Right panel ---- */
+  .notes-title {
+    font-family: "Liberation Serif", "Times New Roman", Times, serif;
+    font-weight: 700; font-size: 22pt; text-align: center; margin-top: 0.15in;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ FRONT: ANNOUNCEMENTS ============ -->
+  <div class="page front">
+
+    <div class="praybox">
+      <div class="prayhead">
+        <span class="label">Please be<br>Praying&nbsp;for...</span>
+        <p class="firstpara"><span class="tag">Pray for one another.</span>
+           <span class="tag">HOME</span>: {{ i.prayer.home|join(", ") }}
+           <span class="tag">CARE CENTER</span>: {{ i.prayer.care_center|join(", ") }}
+           <span class="tag">ELIM FARGO:</span> {{ i.prayer.elim_fargo|join(", ") }}
+           {{ i.prayer_tail|safe }}</p>
+      </div>
+      <p><span class="tag">AFLC Missionaries:</span> {{ i.missionaries|safe }}<br>
+         <span class="tag">AFLC Congregations:</span> {{ i.congregations|safe }}</p>
+      <p class="sick">{{ i.sick_notice }}</p>
+      <p><span class="tag">Memory Verse:</span> {{ i.memory_verse_ref }} -
+         {{ i.memory_verse_text|safe }}</p>
+    </div>
+
+    <div class="readings">
+      <div class="head">Scripture readings for {{ i.next_date }}</div>
+      {% for label, ref in i.next_readings %}
+        <div>{{ label }}: {{ ref }}</div>
+      {% endfor %}
+    </div>
+
+    {% for a in i.announcements %}
+      <div class="ann">
+        <div class="head">{{ a.heading }}</div>
+        <div class="body">{{ a.body|safe }}</div>
+      </div>
+    {% endfor %}
+
+    <div class="bold-notes">
+      {% for line in i.bold_notes %}<div>{{ line }}</div>{% endfor %}
+    </div>
+  </div>
+
+  <!-- ============ BACK: MESSAGE & NOTES ============ -->
+  <div class="page back">
+    <div class="notes-title">{{ i.notes_heading|safe }}</div>
+  </div>
+
+</body>
+</html>

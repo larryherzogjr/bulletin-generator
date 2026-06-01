@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generate — {{ week.label }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar">
+    <a class="back" href="{{ url_for('index') }}">&larr; All weeks</a>
+    <h1>Generate</h1>
+    <a class="btn" href="{{ url_for('edit_week', week_id=week.id) }}">Edit week</a>
+  </header>
+
+  <p class="gen-sub">{{ week.label or "Untitled week" }}</p>
+
+  <div class="gen-grid">
+    <!-- ---- Bulletin ---- -->
+    <section class="card gen-card">
+      <h2>Bulletin</h2>
+      <p class="spec">One page · 11 × 8.5 in landscape · single-sided.</p>
+      <p class="spec muted">Print onto the pre-printed bulletin stock.</p>
+      <div class="gen-actions">
+        <a class="btn primary" href="{{ url_for('bulletin_pdf', week_id=week.id, dl=1) }}">Download bulletin</a>
+        <a class="btn" href="{{ url_for('bulletin_pdf', week_id=week.id) }}" target="_blank">Preview</a>
+      </div>
+    </section>
+
+    <!-- ---- Insert ---- -->
+    <section class="card gen-card">
+      <h2>Insert</h2>
+      <p class="spec">Two pages · 5.5 × 8.5 in portrait · double-sided.</p>
+      <div class="duplex-callout">
+        <strong>Print two-sided, flip on the LONG edge.</strong>
+        Paper size Statement / Half-Letter. A short-edge flip prints the back
+        upside down — the most common mistake.
+      </div>
+      <div class="gen-actions">
+        <a class="btn primary" href="{{ url_for('insert_pdf', week_id=week.id, dl=1) }}">Download insert</a>
+        <a class="btn" href="{{ url_for('insert_pdf', week_id=week.id) }}" target="_blank">Preview</a>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

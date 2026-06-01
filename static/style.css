@@ -1,0 +1,153 @@
+:root {
+  --ink: #1c2733;
+  --muted: #5d6b7a;
+  --line: #d8dee6;
+  --bg: #f4f6f9;
+  --card: #fff;
+  --blue: #2d5a88;
+  --blue-dk: #244a72;
+  --danger: #b23b3b;
+  --ok: #2e7d4f;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.45;
+}
+.wrap { max-width: 60rem; margin: 0 auto; padding: 1.2rem 1.2rem 6rem; }
+
+.topbar {
+  display: flex; align-items: center; gap: 1rem;
+  padding: .4rem 0 1rem; flex-wrap: wrap;
+}
+.topbar h1 { font-size: 1.3rem; margin: 0; flex: 1; }
+.back { color: var(--blue); text-decoration: none; font-size: .92rem; }
+.back:hover { text-decoration: underline; }
+
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1.1rem 1.2rem; margin-bottom: 1rem;
+}
+.card h2 { margin: 0 0 .8rem; font-size: 1.05rem; }
+.card h2.inline { display: inline; }
+.card-head { display: flex; align-items: center; justify-content: space-between; }
+.card-head .actions { display: flex; gap: .5rem; }
+
+/* buttons */
+.btn {
+  display: inline-block; cursor: pointer; font-size: .9rem;
+  padding: .45rem .8rem; border-radius: 6px; border: 1px solid var(--line);
+  background: #fff; color: var(--ink); text-decoration: none; line-height: 1.2;
+}
+.btn:hover { background: #f0f3f7; }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: var(--blue-dk); }
+.btn.small { font-size: .8rem; padding: .25rem .55rem; }
+.btn.danger { color: var(--danger); border-color: #e3c3c3; }
+.btn.danger:hover { background: #fbedec; }
+form { display: inline; }
+
+/* week list */
+.week-list { list-style: none; margin: 0; padding: 0; }
+.week-row {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .6rem 0; border-top: 1px solid var(--line);
+}
+.week-row:first-child { border-top: none; }
+.week-label { font-weight: 600; color: var(--blue); text-decoration: none; flex: 1; }
+.week-label:hover { text-decoration: underline; }
+.week-meta { color: var(--muted); font-size: .82rem; }
+.row-actions { display: flex; gap: .35rem; }
+.empty { color: var(--muted); }
+
+/* form layout */
+.grid { display: grid; gap: .8rem; }
+.grid.two { grid-template-columns: 1fr 1fr; }
+.grid.three { grid-template-columns: 1fr 1fr 1fr; }
+label { display: block; font-size: .85rem; color: var(--muted); font-weight: 600; }
+label input, label textarea, .hymn-row input, .row input, .ann-row input, .ann-row textarea {
+  width: 100%; margin-top: .25rem; padding: .45rem .55rem;
+  border: 1px solid var(--line); border-radius: 6px; font-size: .95rem;
+  font-family: inherit; color: var(--ink); background: #fff;
+}
+textarea { resize: vertical; }
+.hint { font-weight: 400; color: var(--muted); font-size: .78rem; font-style: italic; }
+.subhead { font-weight: 700; margin: 1rem 0 .5rem; font-size: .9rem; }
+
+/* creed radios */
+.creed { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .8rem; margin: 1rem 0; }
+.creed legend { font-size: .85rem; font-weight: 600; color: var(--muted); padding: 0 .3rem; }
+.radio { display: inline-flex; align-items: center; gap: .35rem; margin-right: 1.2rem; font-weight: 400; color: var(--ink); }
+.radio input { width: auto; margin: 0; }
+
+/* repeatable rows */
+.rows { display: flex; flex-direction: column; gap: .45rem; }
+.row { display: flex; gap: .45rem; align-items: center; }
+.row.pair input[data-col="0"] { flex: 1; }
+.row.pair input[data-col="1"] { flex: 1; }
+.row.single input { flex: 1; }
+.row-del { flex: 0 0 auto; }
+
+/* hymns */
+.hymn-row { display: flex; gap: .45rem; align-items: center; margin-bottom: .5rem; }
+.hymn-label { flex: 0 0 4.5rem; font-weight: 600; font-size: .88rem; }
+.hymn-row input { flex: 1; }
+.hymn-row input[data-objkey="title"] { flex: 2; }
+
+/* events */
+.parish { margin-bottom: 1.2rem; }
+.event-day { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .7rem; margin: .5rem 0; background: #fafbfc; }
+.day-head input { flex: 1; font-weight: 600; }
+.day-items { display: flex; flex-direction: column; gap: .4rem; margin: .5rem 0 .5rem 1rem; }
+
+/* announcements */
+.anns { display: flex; flex-direction: column; gap: .7rem; }
+.ann-row { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .7rem; background: #fafbfc; }
+.ann-row input { margin-bottom: .4rem; font-weight: 600; }
+
+/* prayer columns */
+.prayer-col .col-label { font-weight: 700; font-size: .85rem; margin-bottom: .4rem; }
+
+details summary { cursor: pointer; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: "▸ "; color: var(--muted); }
+details[open] summary::before { content: "▾ "; }
+
+/* sticky save bar */
+.sticky-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: #fff; border-top: 1px solid var(--line);
+  padding: .7rem 1.2rem; display: flex; align-items: center; gap: .6rem;
+  box-shadow: 0 -2px 8px rgba(0,0,0,.05); z-index: 10;
+}
+.duplex-note { color: var(--muted); font-size: .82rem; margin-left: auto; }
+
+/* save status */
+.save-state { font-size: .85rem; }
+#save-status.saved { color: var(--ok); }
+#save-status.dirty { color: var(--danger); }
+#save-status.saving { color: var(--muted); }
+
+/* generate screen */
+.gen-sub { color: var(--muted); font-size: 1rem; margin: -.3rem 0 1rem; }
+.gen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.gen-card h2 { font-size: 1.1rem; }
+.gen-card .spec { margin: .2rem 0; font-size: .9rem; }
+.gen-card .spec.muted { color: var(--muted); }
+.gen-actions { display: flex; gap: .5rem; margin-top: 1rem; }
+.duplex-callout {
+  background: #fff7e0; border: 1px solid #e6c34a; border-radius: 6px;
+  padding: .7rem .8rem; margin: .8rem 0 0; font-size: .88rem; line-height: 1.4;
+}
+.duplex-callout strong { display: block; margin-bottom: .15rem; }
+
+@media (max-width: 40rem) {
+  .grid.two, .grid.three { grid-template-columns: 1fr; }
+  .gen-grid { grid-template-columns: 1fr; }
+  .duplex-note { display: none; }
+}

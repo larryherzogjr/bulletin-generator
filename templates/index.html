@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bulletin Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar">
+    <h1>Grace &amp; Zion Bulletin</h1>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Weeks</h2>
+      <div class="actions">
+        <form method="post" action="{{ url_for('new_week') }}">
+          <button class="btn primary" type="submit">+ New week</button>
+        </form>
+        {% if not weeks %}
+        <form method="post" action="{{ url_for('new_from_sample') }}">
+          <button class="btn" type="submit">Start from sample</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if weeks %}
+    <ul class="week-list">
+      {% for w in weeks %}
+      <li class="week-row">
+        <a class="week-label" href="{{ url_for('edit_week', week_id=w.id) }}">
+          {{ w.label or "Untitled week" }}
+        </a>
+        <span class="week-meta">updated {{ w.updated_at[:10] }}</span>
+        <span class="row-actions">
+          <a class="btn small" href="{{ url_for('edit_week', week_id=w.id) }}">Edit</a>
+          <a class="btn small" href="{{ url_for('generate', week_id=w.id) }}">Generate</a>
+          <form method="post" action="{{ url_for('clone', week_id=w.id) }}">
+            <button class="btn small" type="submit">Clone</button>
+          </form>
+          <form method="post" action="{{ url_for('delete', week_id=w.id) }}"
+                onsubmit="return confirm('Delete this week? This cannot be undone.');">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No weeks yet. Create one to get started.</p>
+    {% endif %}
+  </section>
+</main>
+</body>
+</html>

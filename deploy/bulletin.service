@@ -1,0 +1,44 @@
+# systemd unit for the Grace & Zion bulletin generator.
+# Install: copy to /etc/systemd/system/bulletin.service (edit paths/user first),
+# then:  sudo systemctl daemon-reload && sudo systemctl enable --now bulletin
+#
+# Mirrors the Sermon Broadcaster pattern: a venv-backed gunicorn process behind
+# the office machine / homelab LAN, managed by systemd, updated via `git pull`.
+
+[Unit]
+Description=Grace & Zion bulletin generator
+After=network.target
+
+[Service]
+Type=simple
+User=bulletin
+Group=bulletin
+
+# Absolute path to the git checkout on the prod box.
+WorkingDirectory=/opt/bulletin-generator
+
+# Keep the SQLite DB OUTSIDE the checkout so `git pull` never touches it.
+# db.py reads BULLETIN_DB if set (see that file); this dir is created below.
+Environment=BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3
+
+# 2 workers is plenty for a single secretary; WeasyPrint is CPU-bound per
+# request, so a short pool with a generous timeout suits PDF generation.
+ExecStart=/opt/bulletin-generator/.venv/bin/gunicorn \
+    --workers 2 \
+    --timeout 120 \
+    --bind 127.0.0.1:8000 \
+    wsgi:application
+
+Restart=on-failure
+RestartSec=3
+
+# Hardening (the app needs no write access beyond its data dir).
+StateDirectory=bulletin
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/bulletin
+
+[Install]
+WantedBy=multi-user.target
