@@ -118,6 +118,19 @@ details summary::-webkit-details-marker { display: none; }
 details summary::before { content: "▸ "; color: var(--muted); }
 details[open] summary::before { content: "▾ "; }
 
+/* optional sections (baptism / confirmation / communion) */
+.optional {
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: .6rem .8rem; margin: 1rem 0; background: #fafbfc;
+}
+.optional .toggle { display: flex; align-items: center; gap: .45rem; font-weight: 400; color: var(--ink); cursor: pointer; }
+.optional .toggle input { width: auto; margin: 0; }
+.optional .opt-body { margin-top: .6rem; display: none; gap: 1.2rem; }
+.optional.on .opt-body { display: flex; }
+.optional .opt-body input[type="text"] { flex: 1; }
+.optional .check { display: inline-flex; align-items: center; gap: .35rem; font-weight: 400; color: var(--ink); }
+.optional .check input { width: auto; margin: 0; }
+
 /* sticky save bar */
 .sticky-bar {
   position: fixed; left: 0; right: 0; bottom: 0;

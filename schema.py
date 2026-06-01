@@ -56,9 +56,16 @@ def blank_blob() -> dict:
             "memory_verse_ref": "",
             "memory_verse_text": "",
             "scripture_lessons": [],
+            # Optional sections. Each has an `enabled` flag; when off they don't
+            # render at all. Baptism/Confirmation carry a free-form line (names);
+            # a blank line renders the heading alone (no "~ ").
+            "baptism": {"enabled": False, "text": ""},        # before ORDER OF SERVICE
             "opening_hymn": {"grace": "", "title": "", "zion": ""},
             "sermon_hymn": {"grace": "", "title": "", "zion": ""},
             "closing_hymn": {"grace": "", "title": "", "zion": ""},
+            # after the closing hymn:
+            "confirmation": {"enabled": False, "text": ""},
+            "communion": {"enabled": False, "grace": False, "zion": False},
             "preacher": "",
             "sermon_text": "",
             "grace_events_banner": "",
@@ -143,6 +150,29 @@ def _hymn(d) -> dict:
     return {k: _s(d.get(k)) for k in _HYMN_KEYS}
 
 
+def _bool(v) -> bool:
+    """Coerce form/JSON truthiness (handles "on", "true", "1", booleans)."""
+    if isinstance(v, str):
+        return v.strip().lower() in ("1", "true", "on", "yes")
+    return bool(v)
+
+
+def _text_section(d) -> dict:
+    """Optional {enabled, text} section (Baptism, Confirmation)."""
+    d = d if isinstance(d, dict) else {}
+    return {"enabled": _bool(d.get("enabled")), "text": _s(d.get("text"))}
+
+
+def _communion(d) -> dict:
+    """Optional {enabled, grace, zion} section."""
+    d = d if isinstance(d, dict) else {}
+    return {
+        "enabled": _bool(d.get("enabled")),
+        "grace": _bool(d.get("grace")),
+        "zion": _bool(d.get("zion")),
+    }
+
+
 def normalize_blob(blob: dict) -> dict:
     """Return a clean blob with the canonical shape, merging over blank_blob().
 
@@ -160,12 +190,17 @@ def normalize_blob(blob: dict) -> dict:
               "preacher", "sermon_text", "memory_verse_ref", "memory_verse_text",
               "grace_events_banner", "zion_events_banner"):
         w[k] = _s(w_in.get(k))
+    # Confession of Faith: one of CREEDS, or "" for "None" (renders the heading
+    # alone, no "~ Creed" suffix). Any other value falls back to the default.
     creed = _s(w_in.get("confession_of_faith"))
-    w["confession_of_faith"] = creed if creed in CREEDS else CREEDS[0]
+    w["confession_of_faith"] = creed if creed in CREEDS or creed == "" else CREEDS[0]
     w["prelude"] = _pairs(w_in.get("prelude"))
     w["scripture_lessons"] = _pairs(w_in.get("scripture_lessons"))
+    w["baptism"] = _text_section(w_in.get("baptism"))
     for h in _HYMNS:
         w[h] = _hymn(w_in.get(h))
+    w["confirmation"] = _text_section(w_in.get("confirmation"))
+    w["communion"] = _communion(w_in.get("communion"))
     w["grace_events"] = _events(w_in.get("grace_events"))
     w["zion_events"] = _events(w_in.get("zion_events"))
 

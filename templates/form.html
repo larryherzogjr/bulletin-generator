@@ -44,6 +44,11 @@
           {{ creed }}
         </label>
         {% endfor %}
+        <label class="radio">
+          <input type="radio" name="confession_of_faith" value=""
+                 {% if not data.weekly.confession_of_faith %}checked{% endif %}>
+          None
+        </label>
       </fieldset>
 
       <div class="subhead">Prelude</div>
@@ -57,6 +62,18 @@
         {% endfor %}
       </div>
       <button type="button" class="btn small add-row" data-target="weekly.prelude">+ Add prelude</button>
+
+      <div class="optional" data-optional="weekly.baptism">
+        <label class="toggle">
+          <input type="checkbox" data-enable
+                 {% if data.weekly.baptism.enabled %}checked{% endif %}>
+          <strong>Baptism</strong> <span class="hint">prints before Order of Service</span>
+        </label>
+        <div class="opt-body">
+          <input type="text" data-text placeholder="family / names (leave blank for just &ldquo;Baptism&rdquo;)"
+                 value="{{ data.weekly.baptism.text }}">
+        </div>
+      </div>
 
       <div class="grid two">
         <label>Preacher
@@ -92,6 +109,36 @@
         <input type="text" data-objkey="zion" placeholder="Zion # (e.g. 59 (Green))" value="{{ data.weekly[slot].zion }}">
       </div>
       {% endfor %}
+
+      <div class="optional" data-optional="weekly.confirmation">
+        <label class="toggle">
+          <input type="checkbox" data-enable
+                 {% if data.weekly.confirmation.enabled %}checked{% endif %}>
+          <strong>Confirmation</strong> <span class="hint">prints after the closing hymn</span>
+        </label>
+        <div class="opt-body">
+          <input type="text" data-text placeholder="confirmand names (leave blank for just &ldquo;Confirmation&rdquo;)"
+                 value="{{ data.weekly.confirmation.text }}">
+        </div>
+      </div>
+
+      <div class="optional" data-optional="weekly.communion">
+        <label class="toggle">
+          <input type="checkbox" data-enable
+                 {% if data.weekly.communion.enabled %}checked{% endif %}>
+          <strong>Communion</strong> <span class="hint">prints after the closing hymn</span>
+        </label>
+        <div class="opt-body">
+          <label class="check">
+            <input type="checkbox" data-flag="grace"
+                   {% if data.weekly.communion.grace %}checked{% endif %}> Grace
+          </label>
+          <label class="check">
+            <input type="checkbox" data-flag="zion"
+                   {% if data.weekly.communion.zion %}checked{% endif %}> Zion
+          </label>
+        </div>
+      </div>
     </section>
 
     <!-- ===================== READINGS ===================== -->

@@ -74,6 +74,10 @@ def _get_week_or_404(conn, week_id: int) -> dict:
     week = db.get_week(conn, week_id)
     if week is None:
         abort(404)
+    # Normalize on read so weeks saved before a schema addition still have the
+    # full canonical shape (new optional sections, etc.) — old rows render and
+    # edit without error, and pick up new fields the next time they're saved.
+    week["data"] = normalize_blob(week["data"])
     return week
 
 

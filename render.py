@@ -30,9 +30,23 @@ _env = Environment(
 )
 
 
-def render_bulletin_html(weekly: dict, standing: dict) -> str:
-    """Render the bulletin inside (left: Order of Worship, right: Coming Events)."""
-    return _env.get_template("bulletin_template.html").render(w=weekly, s=standing)
+# Shrink-to-fit bounds for the bulletin. The inside must stay on ONE sheet; if a
+# busy week (baptism, lots of events, long announcements) would spill to a second
+# page, we re-render at a smaller scale until it fits. MIN_SCALE keeps it legible
+# (~84% -> about 8.8pt body); STEP is the shrink increment per attempt.
+_MIN_SCALE = 0.84
+_SCALE_STEP = 0.02
+
+
+def render_bulletin_html(weekly: dict, standing: dict, scale: float = 1.0) -> str:
+    """Render the bulletin inside (left: Order of Worship, right: Coming Events).
+
+    ``scale`` (<= 1.0) uniformly shrinks the font and vertical spacing; 1.0 is
+    full size. Normally you don't pass this — render_bulletin_pdf picks it.
+    """
+    return _env.get_template("bulletin_template.html").render(
+        w=weekly, s=standing, scale=scale
+    )
 
 
 def render_insert_html(insert: dict) -> str:
@@ -40,9 +54,24 @@ def render_insert_html(insert: dict) -> str:
     return _env.get_template("insert_template.html").render(i=insert)
 
 
+def _fits_one_page(html: str) -> bool:
+    return len(HTML(string=html, base_url=str(BASE_DIR)).render().pages) <= 1
+
+
 def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
-    """Bulletin -> PDF bytes. One page, 11x8.5 landscape, single-sided."""
-    html = render_bulletin_html(weekly, standing)
+    """Bulletin -> PDF bytes. One page, 11x8.5 landscape, single-sided.
+
+    Auto shrink-to-fit: render at full size; if the content overflows onto a
+    second page, step the scale down (to _MIN_SCALE) until it fits on one page.
+    The common case (already fits) renders once at scale 1.0 with no extra cost.
+    """
+    scale = 1.0
+    html = render_bulletin_html(weekly, standing, scale)
+    while not _fits_one_page(html) and scale > _MIN_SCALE:
+        scale = max(_MIN_SCALE, round(scale - _SCALE_STEP, 3))
+        html = render_bulletin_html(weekly, standing, scale)
+    # If still overflowing at _MIN_SCALE we stop shrinking and let it run long
+    # rather than render unreadably small — a signal to trim content.
     return HTML(string=html, base_url=str(BASE_DIR)).write_pdf()
 
 

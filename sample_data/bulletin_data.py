@@ -25,10 +25,17 @@ WEEKLY = {
         ("Matthew 28:16-20", "G-pg 993; Z-pg 1044"),
     ],
 
+    # Optional sections (off by default). Baptism prints before Order of
+    # Service; Confirmation/Communion after the closing hymn.
+    "baptism": {"enabled": False, "text": ""},
+
     # Each hymn: Grace number + title, Zion number (with hymnal tag)
     "opening_hymn": {"grace": "183", "title": "All Creatures of Our God and King", "zion": "59 (Green)"},
     "sermon_hymn":  {"grace": "181", "title": "O for a Thousand Tongues to Sing",  "zion": "90 (Green)"},
     "closing_hymn": {"grace": "184", "title": "Immortal, Invisible, God Only Wise", "zion": "35 (Green)"},
+
+    "confirmation": {"enabled": False, "text": ""},
+    "communion": {"enabled": False, "grace": False, "zion": False},
 
     "preacher": "Pastor Dennis Norby",
     "sermon_text": "Genesis 1:1-2:4a (G-pg 1; Z-pg 1)",

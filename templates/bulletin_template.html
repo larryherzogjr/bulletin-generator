@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <style>
+  /* --s is the shrink-to-fit scale (1 = full size). render.py lowers it and
+     re-renders if the content would overflow onto a second page. It scales the
+     font and all VERTICAL spacing together; horizontal padding (column widths /
+     fold gutter) stays fixed so the two-panel geometry is preserved. */
+  :root { --s: {{ scale | default(1) }}; }
+
   @page {
     size: 11in 8.5in;   /* flat sheet: landscape letter, folds to 5.5 x 8.5 */
     margin: 0;
@@ -11,7 +17,7 @@
   html, body { margin: 0; padding: 0; }
   body {
     font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
-    font-size: 10.5pt;
+    font-size: calc(10.5pt * var(--s));
     line-height: 1.18;
     color: #000;
   }
@@ -22,7 +28,7 @@
   .panel {
     width: 5.5in;
     height: 8.5in;
-    padding: 0.40in 0.40in 0.30in 0.40in;  /* t r b l */
+    padding: calc(0.40in * var(--s)) 0.40in calc(0.30in * var(--s)) 0.40in;  /* t r b l */
   }
   .panel.left  { padding-right: 0.48in; }   /* extra room toward the fold */
   .panel.right { padding-left: 0.48in; }
@@ -30,36 +36,36 @@
   .center { text-align: center; }
   .b { font-weight: 700; }
   .i { font-style: italic; }
-  hr.rule { border: none; border-top: 1px solid #000; margin: 7pt 0; }
+  hr.rule { border: none; border-top: 1px solid #000; margin: calc(7pt * var(--s)) 0; }
 
   /* ---- Order of worship (left) ---- */
-  .title  { font-size: 13pt; font-weight: 700; text-align: center; }
+  .title  { font-size: calc(13pt * var(--s)); font-weight: 700; text-align: center; }
   .subttl { font-weight: 700; text-align: center; }
-  .label  { font-weight: 700; text-align: center; margin-top: 8pt; }
+  .label  { font-weight: 700; text-align: center; margin-top: calc(8pt * var(--s)); }
   .label-tight { font-weight: 700; text-align: center; }
 
-  .hymn { margin-top: 8pt; }
+  .hymn { margin-top: calc(8pt * var(--s)); }
   .hymn .grace { display: inline-block; }
-  .hymn .htitle { margin-left: 28pt; }
-  .hymn .zion { display: block; }
+  .hymn .htitle { float: right; }      /* hymn name aligns to the right margin */
+  .hymn .zion { display: block; clear: both; }
 
-  .para { margin-top: 8pt; text-align: justify; }
+  .para { margin-top: calc(8pt * var(--s)); text-align: justify; }
   .para .lead { font-weight: 700; }
 
-  .contact { text-align: center; margin-top: 4pt; }
+  .contact { text-align: center; margin-top: calc(4pt * var(--s)); }
   .contact .row { font-weight: 700; }
-  .contact .staff { margin-top: 2pt; }
+  .contact .staff { margin-top: calc(2pt * var(--s)); }
   .contact .staff .name { font-weight: 700; }
 
   /* ---- Coming events (right) ---- */
-  .events-head { font-weight: 700; text-align: center; margin: 0 0 8pt; }
-  .events-head.second { margin-top: 22pt; }
-  .banner { font-weight: 700; margin: 6pt 0; }
-  .day { font-weight: 700; margin-top: 7pt; }
+  .events-head { font-weight: 700; text-align: center; margin: 0 0 calc(8pt * var(--s)); }
+  .events-head.second { margin-top: calc(22pt * var(--s)); }
+  .banner { font-weight: 700; margin: calc(6pt * var(--s)) 0; }
+  .day { font-weight: 700; margin-top: calc(7pt * var(--s)); }
   .ev { display: flex; justify-content: space-between; padding-left: 14pt; }
   .ev .name { padding-right: 8pt; }
   .ev .time { white-space: nowrap; }
-  .radio { margin-top: 14pt; }
+  .radio { margin-top: calc(14pt * var(--s)); }
   .radio .lead { font-weight: 700; }
 </style>
 </head>
@@ -86,6 +92,10 @@
       <span class="zion">Zion #{{ w.opening_hymn.zion }}</span>
     </div>
 
+    {% if w.baptism.enabled %}
+    <div class="label-tight">BAPTISM{% if w.baptism.text %}~ {{ w.baptism.text }}{% endif %}</div>
+    {% endif %}
+
     <div class="label">ORDER OF SERVICE</div>
     <div class="center">{{ w.order_of_service|safe }}</div>
     <div class="label-tight">CONFESSION OF SIN</div>
@@ -99,7 +109,7 @@
       {% endfor %}
     </div>
 
-    <div class="label">CONFESSION OF FAITH~ {{ w.confession_of_faith }}</div>
+    <div class="label">CONFESSION OF FAITH{% if w.confession_of_faith %}~ {{ w.confession_of_faith }}{% endif %}</div>
     <div class="label-tight">SPECIAL MUSIC</div>
     <div class="label-tight">OFFERING</div>
 
@@ -117,6 +127,17 @@
       <span class="htitle">&ldquo;{{ w.closing_hymn.title }}&rdquo;</span>
       <span class="zion">Zion #{{ w.closing_hymn.zion }}</span>
     </div>
+
+    {% if w.confirmation.enabled %}
+    <div class="label-tight">CONFIRMATION{% if w.confirmation.text %}~ {{ w.confirmation.text }}{% endif %}</div>
+    {% endif %}
+    {% if w.communion.enabled %}
+    {% if w.communion.grace and w.communion.zion %}{% set parishes = "Grace and Zion" %}
+    {% elif w.communion.grace %}{% set parishes = "Grace" %}
+    {% elif w.communion.zion %}{% set parishes = "Zion" %}
+    {% else %}{% set parishes = "" %}{% endif %}
+    <div class="label-tight">COMMUNION{% if parishes %}~ {{ parishes }}{% endif %}</div>
+    {% endif %}
 
     <div class="label-tight">LORD&rsquo;S PRAYER AND BENEDICTION</div>
     <div class="label-tight">THREE-FOLD AMEN - DOXOLOGY</div>

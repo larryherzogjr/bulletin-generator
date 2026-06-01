@@ -36,6 +36,17 @@
 
   form.addEventListener("input", markDirty);
 
+  // ---- optional sections: reflect enabled state visually -----------------
+  function syncOptional(block) {
+    block.classList.toggle("on", block.querySelector("[data-enable]").checked);
+  }
+  form.querySelectorAll("[data-optional]").forEach(syncOptional);
+  form.addEventListener("change", function (e) {
+    if (e.target.matches("[data-enable]")) {
+      syncOptional(e.target.closest("[data-optional]"));
+    }
+  });
+
   // ---- add / remove rows -------------------------------------------------
   function cloneTpl(id) {
     return document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -100,6 +111,17 @@
         obj[inp.dataset.objkey] = inp.value;
       });
       setPath(blob, row.dataset.obj, obj);
+    });
+
+    // optional sections: {enabled, text?} and {enabled, grace, zion}
+    form.querySelectorAll("[data-optional]").forEach(function (block) {
+      const obj = { enabled: block.querySelector("[data-enable]").checked };
+      const text = block.querySelector("[data-text]");
+      if (text) obj.text = text.value;
+      block.querySelectorAll("[data-flag]").forEach(function (cb) {
+        obj[cb.dataset.flag] = cb.checked;
+      });
+      setPath(blob, block.dataset.optional, obj);
     });
 
     // flat lists (pairs or singles)
