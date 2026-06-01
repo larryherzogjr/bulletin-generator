@@ -6,6 +6,9 @@ full brief and milestone plan.
 
 ## Status
 
+**All five milestones complete & verified.** Develop on macOS, deploy to a
+Linux box via `git pull` + systemd — see [DEPLOY.md](DEPLOY.md).
+
 **Milestone 1 — render functions (done & verified).** The two verified
 templates are wired into render functions and a minimal Flask app.
 
@@ -76,6 +79,21 @@ Verified output (via `build_samples.py`):
 - Verified: 19 checks (slug helper, generate screen content, inline-vs-attachment
   disposition, stamped filenames, nav links, 404) pass; visual check of the
   generate screen confirms the layout and duplex callout placement.
+
+**Milestone 5 — packaging & deploy (done & verified).** See [DEPLOY.md](DEPLOY.md).
+
+- [`wsgi.py`](wsgi.py) — gunicorn entrypoint (`wsgi:application`).
+- [`deploy/bulletin.service`](deploy/bulletin.service) — systemd unit (gunicorn,
+  2 workers, hardened). `BULLETIN_DB` points the SQLite file at
+  `/var/lib/bulletin/` — **outside the checkout**, so `git pull` never touches
+  week data. [`db.py`](db.py) honors `BULLETIN_DB` and creates the dir.
+- [`deploy/update.sh`](deploy/update.sh) — the dev→prod loop: `git pull` → sync
+  deps → restart → health-check (prints journal tail and fails loudly on a bad
+  deploy).
+- `/healthz` endpoint (liveness + DB reachability) for the deploy script.
+- Verified: 7 checks (env-var DB path, parent-dir creation, CRUD on the env DB,
+  `/healthz`, wsgi import) pass; `update.sh` passes `bash -n`; a 9-point
+  regression across M1–M5 all green. Initial git commit created.
 
 ## Dev setup (macOS)
 
