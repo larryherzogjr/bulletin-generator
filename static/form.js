@@ -82,6 +82,16 @@
     } else if (t.classList.contains("ann-del")) {
       t.closest(".ann-row").remove();
       markDirty();
+    } else if (t.classList.contains("add-cat")) {
+      form.querySelector("[data-prayer]").appendChild(cloneTpl("tpl-prayer-cat"));
+      markDirty();
+    } else if (t.classList.contains("cat-del")) {
+      t.closest(".prayer-cat").remove();
+      markDirty();
+    } else if (t.classList.contains("add-name")) {
+      const names = t.previousElementSibling; // .cat-names
+      names.appendChild(cloneTpl("tpl-single"));
+      markDirty();
     }
   });
 
@@ -168,6 +178,19 @@
         });
       });
       setPath(blob, container.dataset.anns, anns);
+    });
+
+    // prayer: [{label, names: [str]}, ...]
+    form.querySelectorAll("[data-prayer]").forEach(function (container) {
+      const cats = [];
+      container.querySelectorAll(":scope > .prayer-cat").forEach(function (block) {
+        const names = [];
+        block.querySelectorAll(".cat-names > .row").forEach(function (row) {
+          names.push(row.querySelector('[data-col="0"]').value);
+        });
+        cats.push({ label: block.querySelector("[data-cat-label]").value, names: names });
+      });
+      setPath(blob, container.dataset.prayer, cats);
     });
 
     return blob;

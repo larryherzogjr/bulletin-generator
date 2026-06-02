@@ -52,6 +52,10 @@
   .para { margin-top: calc(8pt * var(--s)); text-align: justify; }
   .para .lead { font-weight: 700; }
 
+  /* Scripture lessons: label on the left, refs aligned to the right margin. */
+  .lessons { overflow: hidden; }                 /* contain the float */
+  .lessons .lesson-list { float: right; text-align: right; }
+
   .contact { text-align: center; margin-top: calc(4pt * var(--s)); }
   .contact .row { font-weight: 700; }
   .contact .staff { margin-top: calc(2pt * var(--s)); }
@@ -103,11 +107,7 @@
     <div class="para"><span class="lead">MEMORY VERSE:</span>
       {{ w.memory_verse_text|safe }} {{ w.memory_verse_ref }}</div>
 
-    <div class="para"><span class="lead">SCRIPTURE LESSONS</span>
-      {% for ref, pgs in w.scripture_lessons %}
-        {{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}
-      {% endfor %}
-    </div>
+    <div class="para lessons"><span class="lead">SCRIPTURE LESSONS</span><span class="lesson-list">{% for ref, pgs in w.scripture_lessons %}{{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}{% endfor %}</span></div>
 
     <div class="label">CONFESSION OF FAITH{% if w.confession_of_faith %}~ {{ w.confession_of_faith }}{% endif %}</div>
     <div class="label-tight">SPECIAL MUSIC{% if w.special_music %}~ {{ w.special_music }}{% endif %}</div>

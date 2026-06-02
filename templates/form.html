@@ -206,23 +206,27 @@
     <section class="card">
       <h2>Insert</h2>
 
-      <div class="subhead">Prayer list</div>
-      <div class="grid three">
-        {% for key, label in [("home","Home"),("care_center","Care Center"),("elim_fargo","Elim Fargo")] %}
-        <div class="prayer-col">
-          <div class="col-label">{{ label }}</div>
-          <div class="rows single" data-list="insert.prayer.{{ key }}" data-cols="name">
-            {% for name in data.insert.prayer[key] %}
+      <div class="subhead">Prayer list <span class="hint">categories are renamable; add or remove as needed</span></div>
+      <div class="prayer" data-prayer="insert.prayer">
+        {% for cat in data.insert.prayer %}
+        <div class="prayer-cat">
+          <div class="row cat-head">
+            <input type="text" data-cat-label placeholder="category label (e.g. HOME)" value="{{ cat.label }}">
+            <button type="button" class="btn small danger cat-del">× category</button>
+          </div>
+          <div class="cat-names">
+            {% for name in cat.names %}
             <div class="row single">
               <input type="text" data-col="0" placeholder="name" value="{{ name }}">
               <button type="button" class="btn small danger row-del">×</button>
             </div>
             {% endfor %}
           </div>
-          <button type="button" class="btn small add-row" data-target="insert.prayer.{{ key }}">+ Add</button>
+          <button type="button" class="btn small add-name">+ Add name</button>
         </div>
         {% endfor %}
       </div>
+      <button type="button" class="btn small add-cat">+ Add category</button>
 
       <div class="grid two">
         <label>Next Sunday's date
@@ -349,6 +353,16 @@
     <input type="text" data-annkey="heading" placeholder="heading">
     <textarea data-annkey="body" rows="4" placeholder="body"></textarea>
     <button type="button" class="btn small danger ann-del">× remove</button>
+  </div>
+</template>
+<template id="tpl-prayer-cat">
+  <div class="prayer-cat">
+    <div class="row cat-head">
+      <input type="text" data-cat-label placeholder="category label (e.g. HOME)">
+      <button type="button" class="btn small danger cat-del">× category</button>
+    </div>
+    <div class="cat-names"></div>
+    <button type="button" class="btn small add-name">+ Add name</button>
   </div>
 </template>
 

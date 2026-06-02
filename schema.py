@@ -87,7 +87,13 @@ def blank_blob() -> dict:
             "staff": [],
         },
         "insert": {
-            "prayer": {"home": [], "care_center": [], "elim_fargo": []},
+            # Ordered, fully editable prayer categories: [{label, names: [str]}].
+            # Labels are renamable and categories can be added/removed in the form.
+            "prayer": [
+                {"label": "HOME", "names": []},
+                {"label": "CARE CENTER", "names": []},
+                {"label": "ELIM FARGO", "names": []},
+            ],
             "prayer_tail": "",
             "missionaries": "",
             "congregations": "",
@@ -177,6 +183,39 @@ def _communion(d) -> dict:
     }
 
 
+# Legacy fixed prayer keys -> default display labels, for migrating old blobs
+# (stored before prayer became an editable list of categories).
+_LEGACY_PRAYER = [("home", "HOME"), ("care_center", "CARE CENTER"),
+                  ("elim_fargo", "ELIM FARGO")]
+
+
+def _prayer(value) -> list:
+    """Normalize the prayer list: [{label, names: [str]}, ...].
+
+    Accepts the current list form, and migrates the old fixed-dict form
+    ({home, care_center, elim_fargo}) so weeks saved before this change keep
+    their entries. A category with neither a label nor any names is dropped.
+    """
+    cats = []
+    if isinstance(value, dict):
+        # Legacy migration: known keys first (stable order), then any extras.
+        ordered = list(_LEGACY_PRAYER) + [
+            (k, k.replace("_", " ").upper())
+            for k in value if k not in dict(_LEGACY_PRAYER)
+        ]
+        for key, label in ordered:
+            if key in value:
+                cats.append({"label": label, "names": _str_list(value.get(key))})
+    elif isinstance(value, list):
+        for cat in value:
+            if not isinstance(cat, dict):
+                continue
+            cats.append({"label": _s(cat.get("label")),
+                         "names": _str_list(cat.get("names"))})
+    # Drop fully-empty categories (no label and no names).
+    return [c for c in cats if c["label"] or c["names"]]
+
+
 def normalize_blob(blob: dict) -> dict:
     """Return a clean blob with the canonical shape, merging over blank_blob().
 
@@ -220,12 +259,7 @@ def normalize_blob(blob: dict) -> dict:
     for k in ("prayer_tail", "missionaries", "congregations", "sick_notice",
               "notes_heading", "next_date"):
         i[k] = _s(i_in.get(k))
-    prayer_in = i_in.get("prayer", {}) if isinstance(i_in.get("prayer"), dict) else {}
-    i["prayer"] = {
-        "home": _str_list(prayer_in.get("home")),
-        "care_center": _str_list(prayer_in.get("care_center")),
-        "elim_fargo": _str_list(prayer_in.get("elim_fargo")),
-    }
+    i["prayer"] = _prayer(i_in.get("prayer"))
     i["next_readings"] = _pairs(i_in.get("next_readings"))
     anns = []
     for a in (i_in.get("announcements") or []):

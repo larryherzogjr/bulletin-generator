@@ -2,13 +2,18 @@
 
 INSERT = {
     # ---- Prayer box (top-left, bordered) ----
-    "prayer": {
-        "home": ["Laverne Leach", "Jim & Sharon Jensen", "Etta Pritchett",
-                 "Gerri Knutson", "Cheryll Borg", "Jan Kjelland",
-                 "Kathleen Schierkolk", "Eldwyn Van Bruggen", "Alton Himmerick"],
-        "care_center": ["Wanda Niess", "Ronda Richards", "Bette Munkeby", "Paul Rieth"],
-        "elim_fargo": ["Gary Skramstad"],
-    },
+    # Ordered, fully editable categories: each has a renamable label and its own
+    # name list. Categories can be added/removed in the form.
+    "prayer": [
+        {"label": "HOME",
+         "names": ["Laverne Leach", "Jim & Sharon Jensen", "Etta Pritchett",
+                   "Gerri Knutson", "Cheryll Borg", "Jan Kjelland",
+                   "Kathleen Schierkolk", "Eldwyn Van Bruggen", "Alton Himmerick"]},
+        {"label": "CARE CENTER",
+         "names": ["Wanda Niess", "Ronda Richards", "Bette Munkeby", "Paul Rieth"]},
+        {"label": "ELIM FARGO",
+         "names": ["Gary Skramstad"]},
+    ],
     # Standing prayer tail (rarely edited)
     "prayer_tail": (
         "Our nation\u2019s leaders, military &amp; families, local elected officials. "

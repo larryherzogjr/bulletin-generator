@@ -21,11 +21,14 @@
     font-family: "Liberation Serif", "Times New Roman", Times, serif;
     font-size: 8.5pt; line-height: 1.2;
   }
-  .prayhead { display: flex; align-items: flex-start; gap: 8pt; }
-  .prayhead .label { flex: 0 0 76pt; font-style: italic; font-weight: 700;
+  /* Float (not flex) for the label: WeasyPrint duplicate-paints flex-child
+     backgrounds, which made this gray box render as 2-3 overlapping copies. */
+  .prayhead::after { content: ""; display: block; clear: both; }
+  .prayhead .label { float: left; width: 76pt; margin: 0 8pt 4pt 0;
+                     font-style: italic; font-weight: 700;
                      text-align: center; line-height: 1.05; font-size: 11pt;
                      padding: 6pt 2pt; background: #eee; border: 1px dotted #999; }
-  .prayhead .firstpara { flex: 1; margin: 0; text-align: justify; }
+  .prayhead .firstpara { margin: 0; text-align: justify; }
   .praybox p { margin: 5pt 0 0; text-align: justify; }
   .praybox .tag { font-weight: 700; }
   .sick { font-style: italic; font-weight: 700; }
@@ -55,10 +58,8 @@
       <div class="prayhead">
         <span class="label">Please be<br>Praying&nbsp;for...</span>
         <p class="firstpara"><span class="tag">Pray for one another.</span>
-           <span class="tag">HOME</span>: {{ i.prayer.home|join(", ") }}
-           <span class="tag">CARE CENTER</span>: {{ i.prayer.care_center|join(", ") }}
-           <span class="tag">ELIM FARGO:</span> {{ i.prayer.elim_fargo|join(", ") }}
-           {{ i.prayer_tail|safe }}</p>
+           {% for cat in i.prayer %}<span class="tag">{{ cat.label }}</span>: {{ cat.names|join(", ") }}
+           {% endfor %}{{ i.prayer_tail|safe }}</p>
       </div>
       <p><span class="tag">AFLC Missionaries:</span> {{ i.missionaries|safe }}<br>
          <span class="tag">AFLC Congregations:</span> {{ i.congregations|safe }}</p>

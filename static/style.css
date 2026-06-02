@@ -110,8 +110,11 @@ textarea { resize: vertical; }
 .ann-row { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .7rem; background: #fafbfc; }
 .ann-row input { margin-bottom: .4rem; font-weight: 600; }
 
-/* prayer columns */
-.prayer-col .col-label { font-weight: 700; font-size: .85rem; margin-bottom: .4rem; }
+/* prayer categories */
+.prayer { display: flex; flex-direction: column; gap: .6rem; }
+.prayer-cat { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .7rem; background: #fafbfc; }
+.prayer-cat .cat-head input[data-cat-label] { flex: 1; font-weight: 600; }
+.prayer-cat .cat-names { display: flex; flex-direction: column; gap: .4rem; margin: .5rem 0 .5rem 1rem; }
 
 details summary { cursor: pointer; list-style: none; }
 details summary::-webkit-details-marker { display: none; }
