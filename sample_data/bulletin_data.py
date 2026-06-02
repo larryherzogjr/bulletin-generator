@@ -29,10 +29,15 @@ WEEKLY = {
     # Service; Confirmation/Communion after the closing hymn.
     "baptism": {"enabled": False, "text": ""},
 
-    # Each hymn: Grace number + title, Zion number (with hymnal tag)
-    "opening_hymn": {"grace": "183", "title": "All Creatures of Our God and King", "zion": "59 (Green)"},
-    "sermon_hymn":  {"grace": "181", "title": "O for a Thousand Tongues to Sing",  "zion": "90 (Green)"},
-    "closing_hymn": {"grace": "184", "title": "Immortal, Invisible, God Only Wise", "zion": "35 (Green)"},
+    # Each hymn has a Grace and a Zion entry, each {num, title}. The Zion title
+    # is filled only when Zion sings a different song; it then prints
+    # right-justified under the Grace hymn name.
+    "opening_hymn": {"grace": {"num": "183", "title": "All Creatures of Our God and King"},
+                     "zion":  {"num": "59 (Green)", "title": ""}},
+    "sermon_hymn":  {"grace": {"num": "181", "title": "O for a Thousand Tongues to Sing"},
+                     "zion":  {"num": "90 (Green)", "title": ""}},
+    "closing_hymn": {"grace": {"num": "184", "title": "Immortal, Invisible, God Only Wise"},
+                     "zion":  {"num": "35 (Green)", "title": ""}},
 
     "confirmation": {"enabled": False, "text": ""},
     "communion": {"enabled": False, "grace": False, "zion": False},

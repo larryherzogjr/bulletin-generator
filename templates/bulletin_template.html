@@ -46,8 +46,9 @@
 
   .hymn { margin-top: calc(8pt * var(--s)); }
   .hymn .grace { display: inline-block; }
-  .hymn .htitle { float: right; }      /* hymn name aligns to the right margin */
+  .hymn .htitle { float: right; }      /* Grace hymn name aligns to the right margin */
   .hymn .zion { display: block; clear: both; }
+  .hymn .ztitle { display: block; float: right; clear: both; }  /* Zion name, right, under the Zion # */
 
   .para { margin-top: calc(8pt * var(--s)); text-align: justify; }
   .para .lead { font-weight: 700; }
@@ -74,6 +75,16 @@
 </style>
 </head>
 <body>
+{#- Hymn block: Grace number + title (title right-justified), Zion number on its
+    own line, and the Zion title right-justified beneath it only when present. -#}
+{% macro hymn(h) %}
+    <div class="hymn">
+      <span class="grace">Grace #{{ h.grace.num }}</span>
+      <span class="htitle">&ldquo;{{ h.grace.title }}&rdquo;</span>
+      <span class="zion">Zion #{{ h.zion.num }}</span>
+      {%- if h.zion.title %}<span class="ztitle">&ldquo;{{ h.zion.title }}&rdquo;</span>{% endif %}
+    </div>
+{% endmacro %}
 <div class="sheet">
 
   <!-- ============ LEFT PANEL: ORDER OF WORSHIP ============ -->
@@ -90,11 +101,7 @@
     <div class="label-tight">ANNOUNCEMENTS ~ Opening Prayer</div>
     <div class="label-tight">Call to Worship ~ {{ w.call_to_worship }}</div>
 
-    <div class="hymn">
-      <span class="grace">Grace #{{ w.opening_hymn.grace }}</span>
-      <span class="htitle">&ldquo;{{ w.opening_hymn.title }}&rdquo;</span>
-      <span class="zion">Zion #{{ w.opening_hymn.zion }}</span>
-    </div>
+    {{ hymn(w.opening_hymn) }}
 
     {% if w.baptism.enabled %}
     <div class="label-tight">BAPTISM{% if w.baptism.text %}~ {{ w.baptism.text }}{% endif %}</div>
@@ -113,20 +120,12 @@
     <div class="label-tight">SPECIAL MUSIC{% if w.special_music %}~ {{ w.special_music }}{% endif %}</div>
     <div class="label-tight">OFFERING</div>
 
-    <div class="hymn">
-      <span class="grace">Grace #{{ w.sermon_hymn.grace }}</span>
-      <span class="htitle">&ldquo;{{ w.sermon_hymn.title }}&rdquo;</span>
-      <span class="zion">Zion #{{ w.sermon_hymn.zion }}</span>
-    </div>
+    {{ hymn(w.sermon_hymn) }}
 
     <div class="label-tight">{{ w.preacher }}</div>
     <div class="center">{{ w.sermon_text }}</div>
 
-    <div class="hymn">
-      <span class="grace">Grace #{{ w.closing_hymn.grace }}</span>
-      <span class="htitle">&ldquo;{{ w.closing_hymn.title }}&rdquo;</span>
-      <span class="zion">Zion #{{ w.closing_hymn.zion }}</span>
-    </div>
+    {{ hymn(w.closing_hymn) }}
 
     {% if w.confirmation.enabled %}
     <div class="label-tight">CONFIRMATION{% if w.confirmation.text %}~ {{ w.confirmation.text }}{% endif %}</div>

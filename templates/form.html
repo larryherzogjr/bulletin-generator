@@ -104,13 +104,23 @@
 
     <!-- ===================== HYMNS ===================== -->
     <section class="card">
-      <h2>Hymns</h2>
+      <h2>Grace Hymns</h2>
       {% for slot, label in [("opening_hymn","Opening"),("sermon_hymn","Sermon"),("closing_hymn","Closing")] %}
-      <div class="hymn-row" data-obj="weekly.{{ slot }}">
+      <div class="hymn-row">
         <span class="hymn-label">{{ label }}</span>
-        <input type="text" data-objkey="grace" placeholder="Grace #" value="{{ data.weekly[slot].grace }}">
-        <input type="text" data-objkey="title" placeholder="Title" value="{{ data.weekly[slot].title }}">
-        <input type="text" data-objkey="zion" placeholder="Zion # (e.g. 59 (Green))" value="{{ data.weekly[slot].zion }}">
+        <input type="text" data-key="weekly.{{ slot }}.grace.num" placeholder="Grace #" value="{{ data.weekly[slot].grace.num }}">
+        <input type="text" data-key="weekly.{{ slot }}.grace.title" placeholder="Title" value="{{ data.weekly[slot].grace.title }}">
+      </div>
+      {% endfor %}
+    </section>
+
+    <section class="card">
+      <h2>Zion Hymns <span class="hint">add a title only when Zion sings a different song; it prints right-justified under the Grace hymn</span></h2>
+      {% for slot, label in [("opening_hymn","Opening"),("sermon_hymn","Sermon"),("closing_hymn","Closing")] %}
+      <div class="hymn-row">
+        <span class="hymn-label">{{ label }}</span>
+        <input type="text" data-key="weekly.{{ slot }}.zion.num" placeholder="Zion # (e.g. 59 (Green))" value="{{ data.weekly[slot].zion.num }}">
+        <input type="text" data-key="weekly.{{ slot }}.zion.title" placeholder="Title (only if different from Grace)" value="{{ data.weekly[slot].zion.title }}">
       </div>
       {% endfor %}
 

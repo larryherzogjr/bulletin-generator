@@ -39,7 +39,6 @@ from __future__ import annotations
 CREEDS = ["Apostles' Creed", "Nicene Creed", "Athanasian Creed"]
 
 # Hymn sub-dict keys.
-_HYMN_KEYS = ("grace", "title", "zion")
 _HYMNS = ("opening_hymn", "sermon_hymn", "closing_hymn")
 
 
@@ -60,9 +59,12 @@ def blank_blob() -> dict:
             # render at all. Baptism/Confirmation carry a free-form line (names);
             # a blank line renders the heading alone (no "~ ").
             "baptism": {"enabled": False, "text": ""},        # before ORDER OF SERVICE
-            "opening_hymn": {"grace": "", "title": "", "zion": ""},
-            "sermon_hymn": {"grace": "", "title": "", "zion": ""},
-            "closing_hymn": {"grace": "", "title": "", "zion": ""},
+            # Each hymn carries a Grace and a Zion entry, each {num, title}.
+            # The Zion hymnal sometimes lists a different song; its title renders
+            # under the Grace title only when present.
+            "opening_hymn": {"grace": {"num": "", "title": ""}, "zion": {"num": "", "title": ""}},
+            "sermon_hymn": {"grace": {"num": "", "title": ""}, "zion": {"num": "", "title": ""}},
+            "closing_hymn": {"grace": {"num": "", "title": ""}, "zion": {"num": "", "title": ""}},
             "special_music": "",   # optional text after "SPECIAL MUSIC~ "
             # after the closing hymn:
             "confirmation": {"enabled": False, "text": ""},
@@ -156,8 +158,26 @@ def _events(rows) -> list:
 
 
 def _hymn(d) -> dict:
+    """Normalize a hymn to {grace: {num, title}, zion: {num, title}}.
+
+    Migrates the old shape {grace, title, zion} (grace/zion were bare numbers,
+    one shared title) -> the Grace entry keeps num+title; the Zion entry keeps
+    its number with no title (old data had no separate Zion title).
+    """
     d = d if isinstance(d, dict) else {}
-    return {k: _s(d.get(k)) for k in _HYMN_KEYS}
+
+    def side(v):
+        v = v if isinstance(v, dict) else {}
+        return {"num": _s(v.get("num")), "title": _s(v.get("title"))}
+
+    grace, zion = d.get("grace"), d.get("zion")
+    # Old shape: grace/zion are strings (numbers) and there's a top-level title.
+    if not isinstance(grace, dict) and not isinstance(zion, dict):
+        return {
+            "grace": {"num": _s(grace), "title": _s(d.get("title"))},
+            "zion": {"num": _s(zion), "title": ""},
+        }
+    return {"grace": side(grace), "zion": side(zion)}
 
 
 def _bool(v) -> bool:
