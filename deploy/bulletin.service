@@ -1,9 +1,15 @@
 # systemd unit for the Grace & Zion bulletin generator.
-# Install: copy to /etc/systemd/system/bulletin.service (edit paths/user first),
-# then:  sudo systemctl daemon-reload && sudo systemctl enable --now bulletin
+# Install: copy to /etc/systemd/system/bulletin.service, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now bulletin
 #
 # Mirrors the Sermon Broadcaster pattern: a venv-backed gunicorn process behind
-# the office machine / homelab LAN, managed by systemd, updated via `git pull`.
+# the homelab LAN, managed by systemd, updated via `git pull`. Coexists with
+# unifi-tools and sermon-broadcaster — this one owns port 8000 (confirmed free).
+#
+# Ownership model: the checkout (/opt/bulletin-generator) is owned by the admin
+# user who runs `git pull` (see deploy/update.sh); this service runs as the
+# unprivileged `bulletin` user, which only needs to READ the checkout and
+# read-write its data dir (/var/lib/bulletin).
 
 [Unit]
 Description=Grace & Zion bulletin generator

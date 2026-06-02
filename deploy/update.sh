@@ -2,7 +2,10 @@
 # Prod update loop for the bulletin generator (run on the prod box).
 # Mirrors the Sermon Broadcaster pattern: pull, sync deps, restart, health-check.
 #
-#   sudo -u bulletin /opt/bulletin-generator/deploy/update.sh
+# Run as YOUR OWN user (the one that owns the checkout and is authed to GitHub
+# and sudo-capable) — NOT as the `bulletin` service user:
+#
+#   /opt/bulletin-generator/deploy/update.sh
 #
 # Idempotent and safe to re-run. The SQLite DB lives outside this checkout
 # (BULLETIN_DB in the service unit), so a pull never touches week data.
@@ -20,6 +23,11 @@ git pull --ff-only
 
 echo "==> sync dependencies"
 ./.venv/bin/python -m pip install -q -r requirements.txt
+
+# New files from the pull are owned by this (admin) user; ensure the
+# unprivileged service user can still read them.
+echo "==> ensure service user can read the checkout"
+chmod -R a+rX "$APP_DIR"
 
 echo "==> restart service ($SERVICE)"
 sudo systemctl restart "$SERVICE"
