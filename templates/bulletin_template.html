@@ -90,13 +90,13 @@
   <!-- ============ LEFT PANEL: ORDER OF WORSHIP ============ -->
   <div class="panel left">
     <div class="title">{{ s.service_title }}</div>
-    <div class="subttl">{{ w.liturgical_day }} ~{{ w.date }}</div>
+    <div class="subttl">{{ w.liturgical_day }} ~ {{ w.date }}</div>
     <div class="subttl">{{ s.welcome }}</div>
     <hr class="rule">
 
     <div class="label-tight">PRELUDE</div>
     {% for who, names in w.prelude %}
-      <div class="center">{{ who }} ~{{ names }}</div>
+      <div class="center">{{ who }} ~ {{ names }}</div>
     {% endfor %}
     <div class="label-tight">ANNOUNCEMENTS ~ Opening Prayer</div>
     <div class="label-tight">Call to Worship ~ {{ w.call_to_worship }}</div>
