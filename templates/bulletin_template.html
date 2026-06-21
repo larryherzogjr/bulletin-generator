@@ -90,13 +90,13 @@
   <!-- ============ LEFT PANEL: ORDER OF WORSHIP ============ -->
   <div class="panel left">
     <div class="title">{{ s.service_title }}</div>
-    <div class="subttl">{{ w.liturgical_day }}~{{ w.date }}</div>
+    <div class="subttl">{{ w.liturgical_day }} ~{{ w.date }}</div>
     <div class="subttl">{{ s.welcome }}</div>
     <hr class="rule">
 
     <div class="label-tight">PRELUDE</div>
     {% for who, names in w.prelude %}
-      <div class="center">{{ who }}~{{ names }}</div>
+      <div class="center">{{ who }} ~{{ names }}</div>
     {% endfor %}
     <div class="label-tight">ANNOUNCEMENTS ~ Opening Prayer</div>
     <div class="label-tight">Call to Worship ~ {{ w.call_to_worship }}</div>
@@ -104,7 +104,7 @@
     {{ hymn(w.opening_hymn) }}
 
     {% if w.baptism.enabled %}
-    <div class="label-tight">BAPTISM{% if w.baptism.text %}~ {{ w.baptism.text }}{% endif %}</div>
+    <div class="label-tight">BAPTISM{% if w.baptism.text %} ~ {{ w.baptism.text }}{% endif %}</div>
     {% endif %}
 
     <div class="label">ORDER OF SERVICE</div>
@@ -116,8 +116,8 @@
 
     <div class="para lessons"><span class="lead">SCRIPTURE LESSONS</span><span class="lesson-list">{% for ref, pgs in w.scripture_lessons %}{{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}{% endfor %}</span></div>
 
-    <div class="label">CONFESSION OF FAITH{% if w.confession_of_faith %}~ {{ w.confession_of_faith }}{% endif %}</div>
-    <div class="label-tight">SPECIAL MUSIC{% if w.special_music %}~ {{ w.special_music }}{% endif %}</div>
+    <div class="label">CONFESSION OF FAITH{% if w.confession_of_faith %} ~ {{ w.confession_of_faith }}{% endif %}</div>
+    <div class="label-tight">SPECIAL MUSIC{% if w.special_music %} ~ {{ w.special_music }}{% endif %}</div>
     <div class="label-tight">OFFERING</div>
 
     {{ hymn(w.sermon_hymn) }}
@@ -128,14 +128,14 @@
     {{ hymn(w.closing_hymn) }}
 
     {% if w.confirmation.enabled %}
-    <div class="label-tight">CONFIRMATION{% if w.confirmation.text %}~ {{ w.confirmation.text }}{% endif %}</div>
+    <div class="label-tight">CONFIRMATION{% if w.confirmation.text %} ~ {{ w.confirmation.text }}{% endif %}</div>
     {% endif %}
     {% if w.communion.enabled %}
     {% if w.communion.grace and w.communion.zion %}{% set parishes = "Grace and Zion" %}
     {% elif w.communion.grace %}{% set parishes = "Grace" %}
     {% elif w.communion.zion %}{% set parishes = "Zion" %}
     {% else %}{% set parishes = "" %}{% endif %}
-    <div class="label-tight">COMMUNION{% if parishes %}~ {{ parishes }}{% endif %}</div>
+    <div class="label-tight">COMMUNION{% if parishes %} ~ {{ parishes }}{% endif %}</div>
     {% endif %}
 
     <div class="label-tight">LORD&rsquo;S PRAYER AND BENEDICTION</div>

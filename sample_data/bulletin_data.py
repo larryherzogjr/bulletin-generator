@@ -42,7 +42,7 @@ WEEKLY = {
     "confirmation": {"enabled": False, "text": ""},
     "communion": {"enabled": False, "grace": False, "zion": False},
 
-    "special_music": "",   # optional text rendered after "SPECIAL MUSIC~ "
+    "special_music": "",   # optional text rendered after "SPECIAL MUSIC ~ "
     "preacher": "Pastor Dennis Norby",
     "sermon_text": "Genesis 1:1-2:4a (G-pg 1; Z-pg 1)",
 
