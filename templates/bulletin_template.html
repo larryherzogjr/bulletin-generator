@@ -44,7 +44,8 @@
   .label  { font-weight: 700; text-align: center; margin-top: calc(8pt * var(--s)); }
   .label-tight { font-weight: 700; text-align: center; }
 
-  .hymn { margin-top: calc(8pt * var(--s)); }
+  .hymn { margin-top: calc(8pt * var(--s)); margin-bottom: calc(8pt * var(--s)); }
+  .hymn::after { content: ""; display: block; clear: both; }  /* contain floats so the bottom margin sits below the last (Zion) line */
   .hymn .grace { display: inline-block; }
   .hymn .htitle { float: right; }      /* Grace hymn name aligns to the right margin */
   .hymn .zion { display: block; clear: both; }
