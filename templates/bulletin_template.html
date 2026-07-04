@@ -44,6 +44,7 @@
   .label  { font-weight: 700; text-align: center; margin-top: calc(8pt * var(--s)); }
   .label-tight { font-weight: 700; text-align: center; }
   .prelude { font-weight: 700; }   /* prelude entries bold by default */
+  .sermon-text { font-weight: 700; }   /* sermon text bold by default */
 
   .hymn { margin-top: calc(8pt * var(--s)); margin-bottom: calc(8pt * var(--s)); }
   .hymn::after { content: ""; display: block; clear: both; }  /* contain floats so the bottom margin sits below the last (Zion) line */
@@ -114,7 +115,7 @@
     <div class="label-tight">CONFESSION OF SIN</div>
 
     <div class="para"><span class="lead">MEMORY VERSE:</span>
-      {{ w.memory_verse_text }} {{ w.memory_verse_ref }}</div>
+      {% if w.memory_verse_ref %}{{ w.memory_verse_ref }} &ndash; {% endif %}{{ w.memory_verse_text }}</div>
 
     <div class="para lessons"><span class="lead">SCRIPTURE LESSONS</span><span class="lesson-list">{% for ref, pgs in w.scripture_lessons %}{{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}{% endfor %}</span></div>
 
@@ -125,7 +126,7 @@
     {{ hymn(w.sermon_hymn) }}
 
     <div class="label-tight">{{ w.preacher }}</div>
-    <div class="center">{{ w.sermon_text }}</div>
+    <div class="center sermon-text">{{ w.sermon_text }}</div>
 
     {{ hymn(w.closing_hymn) }}
 
