@@ -16,18 +16,65 @@ radio ``<u>``, announcement ``<b>``); everything else is escaped. Keep it that
 way so secretary-entered text can't break the markup.
 """
 
+import re
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 from weasyprint import HTML
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 
+# --- Rich text: allow a small set of inline formatting tags in ANY field ------
+#
+# The secretary can type <b>bold</b>, <i>italic</i>, <u>underline</u>,
+# <sup>/<sub>, etc. in any text field. Everything else is escaped, so a stray
+# "<" or a pasted "<script>..." is shown literally and never interpreted — the
+# layout can't be broken and no markup can be injected. Attributes are not
+# allowed (e.g. "<b onclick=...>" won't match and stays escaped as text).
+_RICH_TAGS = ("b", "i", "u", "sup", "sub", "strong", "em", "s", "small", "br")
+
+# Escape a "&" only when it does NOT already begin a valid entity, so existing
+# data like "Todd &amp; Barb" or "&ldquo;" is preserved (not double-escaped)
+# while a typed "Jim & Sharon" still becomes a safe &amp;.
+_BARE_AMP = re.compile(r"&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#[0-9]+|#x[0-9a-fA-F]+);)")
+
+# After escaping, re-enable ONLY the allowlisted tags: <b>, </b>, <br>, <br/>…
+_RICH_RE = re.compile(
+    r"&lt;\s*(/?)\s*(%s)\s*/?\s*&gt;" % "|".join(_RICH_TAGS), re.IGNORECASE
+)
+
+
+def rich(value) -> Markup:
+    """Escape user text, then re-enable an allowlist of inline formatting tags.
+
+    Returns Markup so the (now-safe) result isn't escaped again downstream.
+    """
+    if value is None:
+        return Markup("")
+    s = str(value)
+    s = _BARE_AMP.sub("&amp;", s)
+    s = s.replace("<", "&lt;").replace(">", "&gt;")
+    s = _RICH_RE.sub(lambda m: "<%s%s>" % (m.group(1), m.group(2).lower()), s)
+    return Markup(s)
+
+
+def _finalize(value):
+    """Applied to every {{ }} output: give plain strings rich formatting, but
+    leave Markup untouched so rendered fragments (e.g. the hymn macro, or values
+    already marked |safe) are not re-escaped."""
+    if isinstance(value, str) and not isinstance(value, Markup):
+        return rich(value)
+    return value
+
+
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html", "xml"]),
+    finalize=_finalize,
 )
+_env.filters["rich"] = rich
 
 
 # Shrink-to-fit bounds for the bulletin. The inside must stay on ONE sheet; if a

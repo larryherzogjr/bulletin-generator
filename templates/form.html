@@ -17,6 +17,14 @@
   <form id="week-form" data-week-id="{{ week.id }}"
         data-save-url="{{ url_for('save_week', week_id=week.id) }}">
 
+    <div class="formatting-note">
+      <strong>Formatting:</strong> in any field you can use
+      <code>&lt;b&gt;bold&lt;/b&gt;</code>, <code>&lt;i&gt;italic&lt;/i&gt;</code>,
+      <code>&lt;u&gt;underline&lt;/u&gt;</code>, <code>&lt;sup&gt;raised&lt;/sup&gt;</code>,
+      and <code>&lt;sub&gt;lowered&lt;/sub&gt;</code>. Other angle-bracket text is
+      shown as-is.
+    </div>
+
     <!-- ===================== WORSHIP ===================== -->
     <section class="card">
       <h2>Worship</h2>

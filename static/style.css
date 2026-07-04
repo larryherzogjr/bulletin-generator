@@ -77,6 +77,14 @@ label input, label textarea, .hymn-row input, .row input, .ann-row input, .ann-r
 }
 textarea { resize: vertical; }
 .hint { font-weight: 400; color: var(--muted); font-size: .78rem; font-style: italic; }
+.formatting-note {
+  background: #eef4fb; border: 1px solid #cfe0f2; border-radius: 6px;
+  padding: .6rem .8rem; margin-bottom: 1rem; font-size: .85rem; line-height: 1.5;
+}
+.formatting-note code {
+  background: #fff; border: 1px solid var(--line); border-radius: 3px;
+  padding: 0 .25rem; font-size: .82rem;
+}
 .subhead { font-weight: 700; margin: 1rem 0 .5rem; font-size: .9rem; }
 
 /* creed radios */

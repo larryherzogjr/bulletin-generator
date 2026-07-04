@@ -108,11 +108,11 @@
     {% endif %}
 
     <div class="label">ORDER OF SERVICE</div>
-    <div class="center">{{ w.order_of_service|safe }}</div>
+    <div class="center">{{ w.order_of_service }}</div>
     <div class="label-tight">CONFESSION OF SIN</div>
 
     <div class="para"><span class="lead">MEMORY VERSE:</span>
-      {{ w.memory_verse_text|safe }} {{ w.memory_verse_ref }}</div>
+      {{ w.memory_verse_text }} {{ w.memory_verse_ref }}</div>
 
     <div class="para lessons"><span class="lead">SCRIPTURE LESSONS</span><span class="lesson-list">{% for ref, pgs in w.scripture_lessons %}{{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}{% endfor %}</span></div>
 
@@ -163,7 +163,7 @@
     {% endfor %}
 
     <div class="radio">
-      <span class="lead">Sundays:</span> {{ s.radio|safe }}<br>
+      <span class="lead">Sundays:</span> {{ s.radio }}<br>
       <span class="lead">Listen Live!</span> {{ s.listen_live }}
     </div>
 
