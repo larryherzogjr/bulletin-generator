@@ -43,6 +43,7 @@
   .subttl { font-weight: 700; text-align: center; }
   .label  { font-weight: 700; text-align: center; margin-top: calc(8pt * var(--s)); }
   .label-tight { font-weight: 700; text-align: center; }
+  .prelude { font-weight: 700; }   /* prelude entries bold by default */
 
   .hymn { margin-top: calc(8pt * var(--s)); margin-bottom: calc(8pt * var(--s)); }
   .hymn::after { content: ""; display: block; clear: both; }  /* contain floats so the bottom margin sits below the last (Zion) line */
@@ -97,7 +98,7 @@
 
     <div class="label-tight">PRELUDE</div>
     {% for who, names in w.prelude %}
-      <div class="center">{{ who }} ~ {{ names }}</div>
+      <div class="center prelude">{{ who }} ~ {{ names }}</div>
     {% endfor %}
     <div class="label-tight">ANNOUNCEMENTS ~ Opening Prayer</div>
     <div class="label-tight">Call to Worship ~ {{ w.call_to_worship }}</div>
