@@ -101,25 +101,68 @@ def render_insert_html(insert: dict) -> str:
     return _env.get_template("insert_template.html").render(i=insert)
 
 
-def _fits_one_page(html: str) -> bool:
-    return len(HTML(string=html, base_url=str(BASE_DIR)).render().pages) <= 1
+def _iter_boxes(box):
+    yield box
+    for child in getattr(box, "children", ()) or ():
+        yield from _iter_boxes(child)
+
+
+# Text may consume the bottom padding when needed (better than shrinking the
+# whole bulletin), but must stay this far (px, ~0.1in) off the physical panel
+# edge so nothing prints flush against the fold/cut line.
+_CLIP_SAFETY = 9.6
+
+
+def _panel_overflows(document) -> bool:
+    """True if any panel's text would clip past its physical bottom edge.
+
+    The two panels have a fixed 8.5in height, so content past the edge is
+    silently clipped at print time rather than spilling to a new page — the
+    page-count check can't see it. We allow content to use the bottom padding,
+    and only flag a real clip (last line within _CLIP_SAFETY of the panel edge).
+    """
+    from weasyprint.formatting_structure import boxes as _b
+
+    for page in document.pages:
+        for box in _iter_boxes(page._page_box):
+            el = getattr(box, "element", None)
+            cls = el.get("class") if el is not None else None
+            if not (cls and "panel" in cls):
+                continue
+            edge = (box.position_y + box.padding_top + box.height
+                    + box.padding_bottom) - _CLIP_SAFETY
+            for inner in _iter_boxes(box):
+                if isinstance(inner, (_b.LineBox, _b.TextBox)):
+                    if inner.position_y + inner.height > edge:
+                        return True
+    return False
+
+
+def _bulletin_fits(document) -> bool:
+    """The inside must be ONE page with nothing clipped out of either panel."""
+    return len(document.pages) <= 1 and not _panel_overflows(document)
 
 
 def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
     """Bulletin -> PDF bytes. One page, 11x8.5 landscape, single-sided.
 
-    Auto shrink-to-fit: render at full size; if the content overflows onto a
-    second page, step the scale down (to _MIN_SCALE) until it fits on one page.
-    The common case (already fits) renders once at scale 1.0 with no extra cost.
+    Auto shrink-to-fit: render at full size; if the content spills to a second
+    page OR overflows a panel's fixed height (which would clip at print time),
+    step the scale down (to _MIN_SCALE) until it fits. The common case (already
+    fits) renders once at scale 1.0 with no extra cost.
     """
     scale = 1.0
-    html = render_bulletin_html(weekly, standing, scale)
-    while not _fits_one_page(html) and scale > _MIN_SCALE:
+    document = HTML(
+        string=render_bulletin_html(weekly, standing, scale), base_url=str(BASE_DIR)
+    ).render()
+    while not _bulletin_fits(document) and scale > _MIN_SCALE:
         scale = max(_MIN_SCALE, round(scale - _SCALE_STEP, 3))
-        html = render_bulletin_html(weekly, standing, scale)
-    # If still overflowing at _MIN_SCALE we stop shrinking and let it run long
-    # rather than render unreadably small — a signal to trim content.
-    return HTML(string=html, base_url=str(BASE_DIR)).write_pdf()
+        document = HTML(
+            string=render_bulletin_html(weekly, standing, scale), base_url=str(BASE_DIR)
+        ).render()
+    # If still overflowing at _MIN_SCALE we stop shrinking rather than render
+    # unreadably small — a signal to trim content.
+    return document.write_pdf()
 
 
 def render_insert_pdf(insert: dict) -> bytes:
