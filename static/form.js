@@ -4,7 +4,6 @@
  * The DOM is the source of truth. data-* attributes describe where each input
  * belongs in the blob:
  *   data-key="weekly.date"            -> scalar string at that path
- *   data-obj + data-objkey            -> hymn sub-dict {grace,title,zion}
  *   data-list + rows with data-col    -> list of pairs/singles
  *   data-events + event-day blocks    -> [[day, [[name,time],...]], ...]
  *   data-anns + ann-row blocks        -> [{heading, body}, ...]
@@ -15,6 +14,11 @@
   const form = document.getElementById("week-form");
   const statusEl = document.getElementById("save-status");
   const titleEl = document.getElementById("page-title");
+  const saveBtn = document.getElementById("save-btn");
+  const generateLink = document.getElementById("go-generate");
+  let revision = 0;
+  let savedRevision = 0;
+  let savePromise = null;
 
   // ---- helpers ----------------------------------------------------------
   function setPath(obj, path, value) {
@@ -30,8 +34,13 @@
   }
 
   function markDirty() {
+    revision += 1;
     statusEl.textContent = "Unsaved changes";
     statusEl.className = "dirty";
+  }
+
+  function isDirty() {
+    return revision !== savedRevision;
   }
 
   form.addEventListener("input", markDirty);
@@ -114,15 +123,6 @@
     const creed = form.querySelector('input[name="confession_of_faith"]:checked');
     setPath(blob, "weekly.confession_of_faith", creed ? creed.value : "");
 
-    // hymn objects
-    form.querySelectorAll("[data-obj]").forEach(function (row) {
-      const obj = {};
-      row.querySelectorAll("[data-objkey]").forEach(function (inp) {
-        obj[inp.dataset.objkey] = inp.value;
-      });
-      setPath(blob, row.dataset.obj, obj);
-    });
-
     // optional sections: {enabled, text?} and {enabled, grace, zion}
     form.querySelectorAll("[data-optional]").forEach(function (block) {
       const obj = { enabled: block.querySelector("[data-enable]").checked };
@@ -197,33 +197,72 @@
   }
 
   // ---- save --------------------------------------------------------------
-  const saveBtn = document.getElementById("save-btn");
-
-  async function save() {
+  async function performSave(snapshotRevision) {
     statusEl.textContent = "Saving…";
     statusEl.className = "saving";
+    saveBtn.disabled = true;
+    generateLink.setAttribute("aria-busy", "true");
     try {
       const res = await fetch(form.dataset.saveUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(serialize()),
       });
-      const out = await res.json();
-      if (out.ok) {
-        statusEl.textContent = "Saved";
-        statusEl.className = "saved";
+      let out;
+      try {
+        out = await res.json();
+      } catch (_err) {
+        out = { ok: false, error: "save failed (HTTP " + res.status + ")" };
+      }
+      if (res.ok && out.ok) {
+        savedRevision = snapshotRevision;
+        if (isDirty()) {
+          statusEl.textContent = "Unsaved changes";
+          statusEl.className = "dirty";
+        } else {
+          statusEl.textContent = "Saved";
+          statusEl.className = "saved";
+        }
         if (out.label) titleEl.textContent = out.label;
+        return true;
       } else {
         statusEl.textContent = "Error: " + (out.error || "save failed");
         statusEl.className = "dirty";
+        return false;
       }
     } catch (err) {
       statusEl.textContent = "Error: " + err.message;
       statusEl.className = "dirty";
+      return false;
+    } finally {
+      saveBtn.disabled = false;
+      generateLink.removeAttribute("aria-busy");
+    }
+  }
+
+  async function save() {
+    if (savePromise) return savePromise;
+    const snapshotRevision = revision;
+    savePromise = performSave(snapshotRevision);
+    try {
+      return await savePromise;
+    } finally {
+      savePromise = null;
     }
   }
 
   saveBtn.addEventListener("click", save);
+
+  // Never navigate to generation while a save is pending or content is dirty.
+  generateLink.addEventListener("click", async function (e) {
+    if (!isDirty() && !savePromise) return;
+    e.preventDefault();
+    const destination = generateLink.href;
+    do {
+      if (!(await save())) return;
+    } while (isDirty());
+    window.location.assign(destination);
+  });
 
   // Ctrl/Cmd-S saves
   document.addEventListener("keydown", function (e) {
@@ -235,7 +274,7 @@
 
   // Warn before leaving with unsaved edits
   window.addEventListener("beforeunload", function (e) {
-    if (statusEl.className === "dirty") {
+    if (isDirty() || savePromise) {
       e.preventDefault();
       e.returnValue = "";
     }

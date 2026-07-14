@@ -1,3 +1,5 @@
+-c constraints.txt
+
 Flask>=3.0
 WeasyPrint>=60
 gunicorn>=21.0

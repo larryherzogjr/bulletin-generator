@@ -1,19 +1,19 @@
 """Render the Grace & Zion bulletin and insert templates into print-ready PDFs.
 
-This is the milestone-1 core: it wires the two verified Jinja2 templates
+This module wires the two verified Jinja2 templates
 (``templates/bulletin_template.html`` and ``templates/insert_template.html``)
 into plain functions that take the data dicts and return PDF bytes. The Flask
-app and, later, the SQLite-backed form all funnel through these functions, so
+app and SQLite-backed form all funnel through these functions, so
 the layout has exactly one source of truth.
 
 Template variable contract (matches the templates as written):
   * bulletin_template.html expects ``w`` (the WEEKLY dict) and ``s`` (STANDING).
   * insert_template.html   expects ``i`` (the INSERT dict).
 
-Autoescaping is ON for .html templates. The templates opt specific HTML-bearing
-fields back in with the ``|safe`` filter (memory verse ``<sup>``, hymnal ``<i>``,
-radio ``<u>``, announcement ``<b>``); everything else is escaped. Keep it that
-way so secretary-entered text can't break the markup.
+Autoescaping is ON for .html templates. A finalizer escapes every string, then
+re-enables only a small attribute-free formatting allowlist (``b``, ``i``,
+``u``, ``sup``, and related tags). Secretary-entered text therefore supports
+the documented inline formatting without allowing arbitrary markup.
 """
 
 import re
@@ -78,11 +78,25 @@ _env.filters["rich"] = rich
 
 
 # Shrink-to-fit bounds for the bulletin. The inside must stay on ONE sheet; if a
-# busy week (baptism, lots of events, long announcements) would spill to a second
+# busy week (baptism, lots of events, long standing text) would spill to a second
 # page, we re-render at a smaller scale until it fits. MIN_SCALE keeps it legible
 # (~84% -> about 8.8pt body); STEP is the shrink increment per attempt.
 _MIN_SCALE = 0.84
 _SCALE_STEP = 0.02
+
+# CSS pixels (WeasyPrint uses 96px/in). These are part of the print contract,
+# not incidental template details.
+_PAGE_HEIGHT = 8.5 * 96
+_BULLETIN_WIDTH = 11 * 96
+_INSERT_WIDTH = 5.5 * 96
+
+
+class PDFLayoutError(RuntimeError):
+    """Raised when content cannot satisfy the fixed print layout contract."""
+
+    def __init__(self, kind: str, message: str):
+        super().__init__(message)
+        self.kind = kind
 
 
 def render_bulletin_html(weekly: dict, standing: dict, scale: float = 1.0) -> str:
@@ -113,21 +127,22 @@ def _iter_boxes(box):
 _CLIP_SAFETY = 9.6
 
 
-def _panel_overflows(document) -> bool:
-    """True if any panel's text would clip past its physical bottom edge.
+def _class_box_overflows(document, class_name: str) -> bool:
+    """True if text inside a fixed-height class would clip at the bottom.
 
-    The two panels have a fixed 8.5in height, so content past the edge is
-    silently clipped at print time rather than spilling to a new page — the
-    page-count check can't see it. We allow content to use the bottom padding,
-    and only flag a real clip (last line within _CLIP_SAFETY of the panel edge).
+    The bulletin panels and insert pages have a fixed 8.5in height. Content can
+    therefore cross a physical edge without page-count alone detecting it. We
+    allow content to use the bottom padding and retain a small print-safe edge.
     """
+    # WeasyPrint has no public clipping-inspection API. This internal traversal
+    # is covered by regression tests and WeasyPrint is pinned in constraints.txt.
     from weasyprint.formatting_structure import boxes as _b
 
     for page in document.pages:
         for box in _iter_boxes(page._page_box):
             el = getattr(box, "element", None)
-            cls = el.get("class") if el is not None else None
-            if not (cls and "panel" in cls):
+            classes = (el.get("class") or "").split() if el is not None else []
+            if class_name not in classes:
                 continue
             edge = (box.position_y + box.padding_top + box.height
                     + box.padding_bottom) - _CLIP_SAFETY
@@ -138,9 +153,27 @@ def _panel_overflows(document) -> bool:
     return False
 
 
+def _panel_overflows(document) -> bool:
+    """Backward-compatible name for the bulletin-specific fit check."""
+    return _class_box_overflows(document, "panel")
+
+
+def _has_expected_geometry(document, pages: int, width: float, height: float) -> bool:
+    """Validate page count and physical size before returning printable bytes."""
+    if len(document.pages) != pages:
+        return False
+    return all(
+        abs(page.width - width) < 0.01 and abs(page.height - height) < 0.01
+        for page in document.pages
+    )
+
+
 def _bulletin_fits(document) -> bool:
     """The inside must be ONE page with nothing clipped out of either panel."""
-    return len(document.pages) <= 1 and not _panel_overflows(document)
+    return (
+        _has_expected_geometry(document, 1, _BULLETIN_WIDTH, _PAGE_HEIGHT)
+        and not _panel_overflows(document)
+    )
 
 
 def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
@@ -160,12 +193,28 @@ def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
         document = HTML(
             string=render_bulletin_html(weekly, standing, scale), base_url=str(BASE_DIR)
         ).render()
-    # If still overflowing at _MIN_SCALE we stop shrinking rather than render
-    # unreadably small — a signal to trim content.
+    if not _bulletin_fits(document):
+        raise PDFLayoutError(
+            "bulletin",
+            "The bulletin content is too long to fit on one 11 x 8.5 inch "
+            "sheet at the minimum legible size. Shorten the worship, events, "
+            "or standing text and try again.",
+        )
     return document.write_pdf()
 
 
 def render_insert_pdf(insert: dict) -> bytes:
     """Insert -> PDF bytes. Two pages, 5.5x8.5 portrait, print duplex / long-edge flip."""
     html = render_insert_html(insert)
-    return HTML(string=html, base_url=str(BASE_DIR)).write_pdf()
+    document = HTML(string=html, base_url=str(BASE_DIR)).render()
+    if (
+        not _has_expected_geometry(document, 2, _INSERT_WIDTH, _PAGE_HEIGHT)
+        or _class_box_overflows(document, "page")
+    ):
+        raise PDFLayoutError(
+            "insert",
+            "The insert content is too long to fit on exactly two 5.5 x 8.5 "
+            "inch pages. Shorten the prayer list, readings, announcements, "
+            "or bold notes and try again.",
+        )
+    return document.write_pdf()

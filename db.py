@@ -1,12 +1,12 @@
-"""SQLite persistence for the bulletin generator (milestone 2).
+"""SQLite persistence for the bulletin generator.
 
 Design (settled — see memory: bulletin-schema-decisions):
   * One row per week.
-  * Each row stores the *entire* field set as a single JSON blob with three
-    top-level keys: ``weekly``, ``standing``, ``insert`` — the same dicts the
-    render functions consume. STANDING is snapshotted into every week (not a
-    shared/global table), so editing one week never changes past weeks and an
-    old bulletin always reprints exactly as it was.
+  * Each row stores the *entire* field set as a versioned JSON blob with
+    ``schema_version``, ``weekly``, ``standing``, and ``insert`` keys. The three
+    section dicts are exactly what the render functions consume. STANDING is
+    snapshotted into every week (not a shared/global table), so editing one week
+    never changes past weeks and an old bulletin always reprints exactly.
   * "New week = clone the most recent" copies the latest blob into a new row;
     the secretary then edits only what changed.
 
@@ -44,7 +44,7 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS weeks (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     label      TEXT NOT NULL DEFAULT '',
-    data       TEXT NOT NULL,           -- JSON: {"weekly":{...},"standing":{...},"insert":{...}}
+    data       TEXT NOT NULL,           -- versioned JSON week snapshot
     created_at TEXT NOT NULL,           -- ISO-8601 UTC
     updated_at TEXT NOT NULL            -- ISO-8601 UTC
 );
@@ -68,9 +68,10 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     # Ensure the parent dir exists (e.g. a fresh /var/lib/bulletin on prod).
     if db_path.parent and not db_path.parent.exists():
         db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(str(db_path), timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 10000")
     return conn
 
 

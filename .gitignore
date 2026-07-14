@@ -1,6 +1,10 @@
 .venv/
 venv/
+.pytest_cache/
+.coverage
+htmlcov/
 out/
+reference/
 __pycache__/
 *.pyc
 *.sqlite3

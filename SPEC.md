@@ -11,7 +11,7 @@ numbers, events split into two sections).
 ## Stack
 - Flask (single internal app, no auth — runs on the office machine / homelab LAN)
 - Jinja2 templates → HTML
-- WeasyPrint → PDF (pure Python, strong print-CSS support; already proven on this layout)
+- WeasyPrint → PDF (strong print-CSS support; requires Pango/Cairo native libraries)
 - SQLite for week-to-week persistence (clone-last-week)
 - Deploy pattern mirrors Sermon Broadcaster: systemd service, git pull on prod, restart
 
@@ -55,22 +55,37 @@ exact shape. Split conceptually into:
 - confession_of_faith (rotates: Apostles' / Nicene / Athanasian)
 - memory_verse_ref + memory_verse_text (shared with the insert)
 - scripture_lessons (list of (ref, "G-pg …; Z-pg …"))
-- opening_hymn / sermon_hymn / closing_hymn, each `{grace, title, zion}`
+- opening_hymn / sermon_hymn / closing_hymn, each with independent
+  `{grace: {num, title}, zion: {num, title}}` entries
 - preacher, sermon_text
 - grace_events / zion_events (list of (day, [(name, time), …])), optional banner line
-- Insert: prayer list (home[], care_center[], elim_fargo[]), next_date,
+- Insert: ordered editable prayer categories (`[{label, names[]}]`), next_date,
   next_readings (list of (label, ref)), announcements (variable list of
   {heading, body} with inline bold allowed), bold_notes ([str])
 
-**STANDING (template defaults — rarely edited, but make them editable):**
+**STANDING (template defaults — rarely edited, but editable and snapshotted):**
 - service_title, welcome, radio, listen_live, office_hours, contact_lines, staff
-- prayer_tail, missionaries, congregations, sick_notice, notes_heading
+- Insert-standing fields are stored in the insert section: prayer_tail,
+  missionaries, congregations, sick_notice, notes_heading
 
 Hymnal note: Grace uses *Ambassador*; Zion uses *Concordia* plus a "Green" hymnal
 (numbers tagged "(Green)"). Memory verse is shared between bulletin and insert in a
 given week — collect once, render in both.
 
-## Build plan (suggested milestones)
+## Completed product decisions
+
+- PDFs are downloaded separately because they use different paper and printer
+  settings.
+- Standing fields remain editable and are copied into each week's immutable
+  snapshot.
+- Versioned JSON blobs preserve legacy prayer/hymn data; blobs from a newer
+  unsupported version fail safely.
+- The renderer must return exactly one bulletin page and two insert pages. It
+  reports a layout error when content cannot fit at a legible size.
+- The service is unauthenticated only inside its loopback/reverse-proxy trust
+  boundary. The proxy must provide authentication before wider exposure.
+
+## Original build plan (completed)
 1. App skeleton + the two render functions wrapping the existing templates
    (port the `build.py` / `build_insert.py` logic). Confirm PDFs still match.
 2. SQLite schema: one row per week (a JSON blob of the field set is fine), with a
@@ -82,8 +97,8 @@ given week — collect once, render in both.
    downloads — ask the user). Include the duplex reminder near the insert download.
 5. Package as a systemd service; document the dev→prod loop like Sermon Broadcaster.
 
-## Open items to confirm with the user
+## Remaining external acceptance items
 - The "Please be Praying for…" prayer-box graphic is a styled placeholder in the
   template; swap in the real image asset when available.
-- One-click bundled download vs. two separate PDF downloads.
-- Whether any "standing" fields should be locked vs. editable in the form.
+- Add original output files to a private reference location and establish the
+  approved visual-diff tolerance. They are not committed today.

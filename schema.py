@@ -1,4 +1,4 @@
-"""Canonical shape of a week's data blob (milestone 3).
+"""Canonical shape of a week's data blob.
 
 The form (and any future importer) must produce a blob with these exact keys.
 ``blank_blob()`` gives an empty-but-complete starting point for a brand-new week;
@@ -8,6 +8,8 @@ coerced to str, list fields forced to lists, nested rows trimmed of blanks).
 
 Shape (three sections, matching the render functions):
 
+  schema_version: integer used for safe data migrations
+
   weekly:
     liturgical_day, date, call_to_worship, order_of_service,
     confession_of_faith (one of CREEDS), preacher, sermon_text,
@@ -15,7 +17,8 @@ Shape (three sections, matching the render functions):
     grace_events_banner, zion_events_banner               # str
     prelude:           [[who, names], ...]
     scripture_lessons: [[ref, pages], ...]
-    opening_hymn/sermon_hymn/closing_hymn: {grace, title, zion}
+    opening_hymn/sermon_hymn/closing_hymn:
+      {grace: {num, title}, zion: {num, title}}
     grace_events/zion_events: [[day, [[name, time], ...]], ...]
 
   standing:
@@ -27,13 +30,25 @@ Shape (three sections, matching the render functions):
     prayer_tail, missionaries, congregations, sick_notice, notes_heading,
     memory_verse_ref, memory_verse_text,                  # mirror of weekly
     next_date
-    prayer: {home: [str], care_center: [str], elim_fargo: [str]}
+    prayer: [{label, names: [str]}, ...]
     next_readings: [[label, ref], ...]
     announcements: [{heading, body}, ...]
     bold_notes:    [str, ...]
 """
 
 from __future__ import annotations
+
+from copy import deepcopy
+
+# Stored blobs without a version are legacy version 0. Normalizing them applies
+# the existing prayer/hymn migrations and upgrades them to this version. A blob
+# from a newer application is rejected instead of silently losing unknown data.
+CURRENT_SCHEMA_VERSION = 1
+
+
+class SchemaVersionError(ValueError):
+    """Raised when this application cannot safely normalize a stored blob."""
+
 
 # Confession of Faith rotates among these three (radio button in the form).
 CREEDS = ["Apostles' Creed", "Nicene Creed", "Athanasian Creed"]
@@ -45,6 +60,7 @@ _HYMNS = ("opening_hymn", "sermon_hymn", "closing_hymn")
 def blank_blob() -> dict:
     """A complete, empty week blob — every key present, lists empty."""
     return {
+        "schema_version": CURRENT_SCHEMA_VERSION,
         "weekly": {
             "liturgical_day": "",
             "date": "",
@@ -106,6 +122,7 @@ def blank_blob() -> dict:
             "next_readings": [],
             "announcements": [],
             "bold_notes": [],
+            "notes_heading": "",
         },
     }
 
@@ -236,14 +253,58 @@ def _prayer(value) -> list:
     return [c for c in cats if c["label"] or c["names"]]
 
 
+def _schema_version(blob: dict) -> int:
+    raw_version = blob.get("schema_version", 0)
+    try:
+        return int(raw_version)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _migrate_v0_to_v1(migrated: dict) -> dict:
+    """Add versions and upgrade legacy hymn/prayer structures."""
+    weekly = migrated.get("weekly")
+    if isinstance(weekly, dict):
+        for hymn in _HYMNS:
+            if hymn in weekly:
+                weekly[hymn] = _hymn(weekly[hymn])
+    insert = migrated.get("insert")
+    if isinstance(insert, dict) and "prayer" in insert:
+        insert["prayer"] = _prayer(insert["prayer"])
+    migrated["schema_version"] = 1
+    return migrated
+
+
+_MIGRATIONS = {0: _migrate_v0_to_v1}
+
+
+def migrate_blob(blob: dict) -> dict:
+    """Upgrade a blob through explicit version steps without mutating input."""
+    migrated = deepcopy(blob) if isinstance(blob, dict) else {}
+    version = _schema_version(migrated)
+    if version > CURRENT_SCHEMA_VERSION:
+        raise SchemaVersionError(
+            f"week data uses schema version {version}; this application supports "
+            f"up to version {CURRENT_SCHEMA_VERSION}"
+        )
+    while version < CURRENT_SCHEMA_VERSION:
+        migrate = _MIGRATIONS.get(version)
+        if migrate is None:
+            raise SchemaVersionError(f"no migration is available from schema version {version}")
+        migrated = migrate(migrated)
+        version = _schema_version(migrated)
+    return migrated
+
+
 def normalize_blob(blob: dict) -> dict:
     """Return a clean blob with the canonical shape, merging over blank_blob().
 
     Also enforces the shared memory verse: weekly's value wins and is mirrored
     into insert (the form collects it once; the spec renders it in both).
     """
+    src = migrate_blob(blob)
+
     b = blank_blob()
-    src = blob if isinstance(blob, dict) else {}
     w_in = src.get("weekly", {}) if isinstance(src.get("weekly"), dict) else {}
     s_in = src.get("standing", {}) if isinstance(src.get("standing"), dict) else {}
     i_in = src.get("insert", {}) if isinstance(src.get("insert"), dict) else {}

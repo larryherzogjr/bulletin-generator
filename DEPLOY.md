@@ -1,102 +1,142 @@
 # Deploying the bulletin generator
 
-Mirrors the Sermon Broadcaster setup: a venv-backed **gunicorn** process managed
-by **systemd**, on the homelab LAN, updated with **git pull**. No auth — it's
-LAN-only.
+Production runs Gunicorn under systemd on a Linux VM. Gunicorn binds only to
+`127.0.0.1:8000`; nginx or Caddy should provide HTTPS, LAN routing, and
+authentication. The application itself intentionally has no user accounts.
 
-**This deployment's choices** (the Linux VM also runs unifi-tools and
-sermon-broadcaster):
-- **Port 8000** (confirmed free on the VM; sermon-broadcaster/unifi-tools use
-  other ports). gunicorn binds `127.0.0.1:8000`.
-- The **git checkout and venv are owned by your own user** (`larryherzogjr`),
-  who is GitHub-authed and sudo-capable, so `git pull` / `pip` need no sudo.
-  The **service runs as the hardened `bulletin` user**, which only needs read
-  access to the checkout and read-write to its data dir.
-- The repo is **private**, so cloning/pulling uses your user's GitHub auth.
+The checkout and virtual environment are owned by the sudo-capable deployment
+user. The service runs as the unprivileged `bulletin` user and can write only
+to `/var/lib/bulletin`.
 
-Replace `larryherzogjr` below with your shell username if different.
+## One-time setup
 
-## One-time prod setup
-
-Run on the VM as your own sudo-capable user.
+Run these commands as the deployment user:
 
 ```sh
-# 1. System libraries WeasyPrint renders through (Linux puts them on the
-#    standard loader path — no dyld shim needed, unlike macOS dev).
 sudo apt update
 sudo apt install -y python3-venv python3-pip \
     libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 \
-    fonts-liberation        # metric-compatible Arial/Times for correct fit
+    fonts-liberation poppler-utils
 
-# 2. Service user (no login; runs gunicorn only) + data dir
 sudo useradd --system --shell /usr/sbin/nologin bulletin
 sudo mkdir -p /var/lib/bulletin
 sudo chown bulletin:bulletin /var/lib/bulletin
 
-# 3. Clone as YOURSELF (you're GitHub-authed; the repo is private).
-#    You own the checkout, so future `git pull`/`pip` need no sudo.
 sudo mkdir -p /opt/bulletin-generator
 sudo chown "$USER":"$USER" /opt/bulletin-generator
-git clone https://github.com/larryherzogjr/bulletin-generator.git /opt/bulletin-generator
+git clone https://github.com/larryherzogjr/bulletin-generator.git \
+    /opt/bulletin-generator
 cd /opt/bulletin-generator
 
-# 4. venv + deps (as yourself)
 python3 -m venv .venv
-./.venv/bin/python -m pip install -r requirements.txt
+./.venv/bin/python -m pip install -r requirements-dev.txt
+./.venv/bin/python -m pytest -q
 
-# 5. Let the bulletin service user READ the checkout (you own it; it runs it).
-#    World-readable is fine on a single-tenant homelab box; tighten if needed.
-chmod -R a+rX /opt/bulletin-generator
-
-# 6. Install + start the service
+sudo chgrp -R bulletin /opt/bulletin-generator
+sudo chmod -R g+rX,o-rwx /opt/bulletin-generator
+sudo find /opt/bulletin-generator -type d -exec chmod g+s {} +
 sudo cp deploy/bulletin.service /etc/systemd/system/bulletin.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now bulletin
 curl -fsS http://127.0.0.1:8000/healthz && echo OK
 ```
 
-The DB lives at `/var/lib/bulletin/bulletin.sqlite3` (set via `BULLETIN_DB` in
-the unit) — **outside** the git checkout, so updates never touch week data.
-On first request the schema auto-creates; seed a starting week if you like
-(run as the service user so the file is owned correctly):
+The version constraints validated by CI are applied automatically through
+`requirements-dev.txt`. Do not install unconstrained dependencies in the
+production virtual environment.
+
+## Database and initial data
+
+`BULLETIN_DB` points to `/var/lib/bulletin/bulletin.sqlite3`, outside the Git
+checkout. Initialize or seed it as the service user:
 
 ```sh
 sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
-    /opt/bulletin-generator/.venv/bin/python manage.py seed
+    /opt/bulletin-generator/.venv/bin/python \
+    /opt/bulletin-generator/manage.py init
+
+sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
+    /opt/bulletin-generator/.venv/bin/python \
+    /opt/bulletin-generator/manage.py seed
 ```
 
-## The dev → prod loop
+The seed content is fictional and exists only to demonstrate layout.
 
-1. **Develop on macOS** (see [README.md](README.md) for the local setup —
-   Homebrew libs + the dyld shim in `render.py`).
-2. **Commit & push** from the dev machine.
-3. **Update prod** — on the VM, **as yourself** (you own the checkout; the
-   script `sudo`s only for the service restart):
+## Normal update workflow
 
-   ```sh
-   /opt/bulletin-generator/deploy/update.sh
-   ```
+After committing and pushing a tested change, run:
 
-   It pulls, syncs deps, restarts the service, and health-checks. On a failed
-   health check it prints the last 30 journal lines and exits non-zero, so a
-   bad deploy is obvious immediately.
+```sh
+/opt/bulletin-generator/deploy/update.sh
+```
 
-## Reach it from other machines on the LAN
+The updater refuses tracked local production changes, then:
 
-gunicorn binds `127.0.0.1:8000`, so by default it's reachable only on the VM.
-To serve the LAN, either change the unit's `--bind` to `0.0.0.0:8000` and browse
-to `http://<VM-IP>:8000`, or (preferred, and consistent with how you'd expose
-unifi-tools / sermon-broadcaster) front it with nginx/Caddy on a hostname.
+1. records the currently deployed revision and fast-forwards Git;
+2. installs the pinned runtime and test dependencies;
+3. creates an online timestamped SQLite backup;
+4. runs pytest and database/schema/PDF render preflight checks;
+5. installs the current systemd unit and restarts the service;
+6. verifies `/healthz`.
+
+Any failure after the pull resets the clean checkout to the previous revision,
+restores its dependencies and unit file, restarts it, and checks rollback
+health. The database backup is retained.
+
+Environment overrides supported by the updater are `APP_DIR`, `SERVICE`,
+`SERVICE_USER`, `SERVICE_GROUP`, `BULLETIN_DB`, `HEALTH_URL`, and `UNIT_DEST`.
+
+## Backups and recovery
+
+Automatic backups are written under `/var/lib/bulletin/backups/`. Monitor that
+directory and copy backups to a different machine or storage volume; an onsite
+backup alone does not protect against VM/disk loss.
+
+Create an extra backup at any time:
+
+```sh
+sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
+    /opt/bulletin-generator/.venv/bin/python \
+    /opt/bulletin-generator/manage.py backup
+```
+
+Verify the live database and render path:
+
+```sh
+sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
+    /opt/bulletin-generator/.venv/bin/python \
+    /opt/bulletin-generator/manage.py check --render
+```
+
+To restore, stop the service, preserve the failed database separately, copy a
+chosen backup to `/var/lib/bulletin/bulletin.sqlite3`, restore ownership to
+`bulletin:bulletin`, and start the service. Run `manage.py check --render`
+before reopening access.
+
+## Network boundary
+
+Do not change Gunicorn to `0.0.0.0`. Keep it loopback-only and proxy it through
+nginx/Caddy. The proxy should:
+
+- terminate HTTPS;
+- require authentication;
+- preserve the original `Host` header;
+- restrict access to the intended LAN/VPN ranges;
+- avoid caching edit or PDF responses containing current parish data.
+
+The app rejects browser requests marked cross-site and POST requests whose
+Origin/Referer host differs from the requested host. The default JSON request
+limit is 1 MiB (`BULLETIN_MAX_CONTENT_LENGTH=1048576`).
 
 ## Troubleshooting
 
 | Symptom | Check |
-|---------|-------|
-| 502 / won't start | `sudo journalctl -u bulletin -n 50 --no-pager` |
-| "cannot load library 'libgobject…'" | WeasyPrint system libs (step 1) missing |
-| Fonts look wrong / spacing drifts | `fonts-liberation` not installed (step 1) |
-| Week data vanished after update | DB must be at `BULLETIN_DB`, not in the checkout |
-| Health check fails | `curl -v http://127.0.0.1:8000/healthz` for the error |
-| `update.sh`: permission denied on pull | Run it as the user who owns `/opt/bulletin-generator`, not as `bulletin` |
-| Service can't read app after update | `chmod -R a+rX /opt/bulletin-generator` (new files from pull) |
-| Port 8000 already in use | `sudo ss -ltnp \| grep :8000`; change `--bind` in the unit + `HEALTH_URL` in update.sh |
+|---|---|
+| Service will not start | `sudo journalctl -u bulletin -n 50 --no-pager` |
+| Native-library error | Confirm the Pango/Cairo packages above are installed |
+| Font/layout drift | `fc-list \| grep -i liberation` |
+| PDF returns HTTP 422 | Shorten the section named in the layout error |
+| Update refuses to run | `git status`; production tracked files must be clean |
+| Preflight fails | Run pytest and `manage.py check --render` manually |
+| Rollback also fails | Inspect the journal and verify DB ownership/path |
+| Port conflict | `sudo ss -ltnp \| grep :8000` |

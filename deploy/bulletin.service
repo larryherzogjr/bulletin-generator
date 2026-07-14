@@ -26,6 +26,8 @@ WorkingDirectory=/opt/bulletin-generator
 # Keep the SQLite DB OUTSIDE the checkout so `git pull` never touches it.
 # db.py reads BULLETIN_DB if set (see that file); this dir is created below.
 Environment=BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3
+Environment=BULLETIN_MAX_CONTENT_LENGTH=1048576
+Environment=PYTHONUNBUFFERED=1
 
 # 2 workers is plenty for a single secretary; WeasyPrint is CPU-bound per
 # request, so a short pool with a generous timeout suits PDF generation.
@@ -40,9 +42,11 @@ RestartSec=3
 
 # Hardening (the app needs no write access beyond its data dir).
 StateDirectory=bulletin
+UMask=0027
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=full
+PrivateDevices=true
+ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/bulletin
 

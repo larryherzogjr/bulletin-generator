@@ -41,8 +41,7 @@
           <form method="post" action="{{ url_for('clone', week_id=w.id) }}">
             <button class="btn small" type="submit">Clone</button>
           </form>
-          <form method="post" action="{{ url_for('delete', week_id=w.id) }}"
-                onsubmit="return confirm('Delete this week? This cannot be undone.');">
+          <form class="confirm-delete" method="post" action="{{ url_for('delete', week_id=w.id) }}">
             <button class="btn small danger" type="submit">Delete</button>
           </form>
         </span>
@@ -54,5 +53,6 @@
     {% endif %}
   </section>
 </main>
+<script src="{{ url_for('static', filename='index.js') }}"></script>
 </body>
 </html>

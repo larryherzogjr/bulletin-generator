@@ -58,7 +58,7 @@
       <div class="prayhead">
         <span class="label">Please be<br>Praying&nbsp;for...</span>
         <p class="firstpara"><span class="tag">Pray for one another.</span>
-           {% for cat in i.prayer %}<span class="tag">{{ cat.label }}</span>: {{ cat.names|join(", ") }}
+           {% for cat in i.prayer %}<span class="tag">{{ cat.label }}</span>: {{ cat.names|join(", ") }}{% if loop.last %}. {% else %}; {% endif %}
            {% endfor %}{{ i.prayer_tail }}</p>
       </div>
       <p><span class="tag">AFLC Missionaries:</span> {{ i.missionaries }}<br>

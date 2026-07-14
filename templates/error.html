@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} - Bulletin Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar">
+    <a class="back" href="{{ url_for('index') }}">&larr; All weeks</a>
+    <h1>{{ title }}</h1>
+  </header>
+  <section class="card error-card">
+    <p>{{ message }}</p>
+    <p class="muted">No PDF was generated. Your saved week has not been changed.</p>
+  </section>
+</main>
+</body>
+</html>

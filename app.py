@@ -1,4 +1,4 @@
-"""Flask app for the Grace & Zion bulletin generator (milestones 3–4).
+"""Flask app for the Grace & Zion bulletin generator.
 
 Routes
   GET  /                      list weeks (newest first)
@@ -17,7 +17,7 @@ keeps deeply-nested, variable-length structures — events, lessons,
 announcements — straightforward versus flat form-encoded names. The server
 normalizes defensively (schema.normalize_blob) before persisting.
 
-Download policy (M4): the secretary downloads the two PDFs separately (no
+Download policy: the secretary downloads the two PDFs separately (no
 bundle — confirmed with the user, since they print on different paper/settings).
 Plain PDF routes render inline for quick preview; add ``?dl=1`` to force a
 download with a friendly, week-stamped filename.
@@ -25,17 +25,99 @@ download with a friendly, week-stamped filename.
 
 from __future__ import annotations
 
+import os
 import re
+from urllib.parse import urlsplit
 
 from flask import (
     Flask, Response, abort, jsonify, redirect, render_template, request, url_for,
 )
 
 import db
-from schema import CREEDS, blank_blob, normalize_blob
-from render import render_bulletin_pdf, render_insert_pdf
+from schema import CREEDS, SchemaVersionError, blank_blob, normalize_blob
+from render import PDFLayoutError, render_bulletin_pdf, render_insert_pdf
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.environ.get("BULLETIN_MAX_CONTENT_LENGTH", 1024 * 1024)
+)
+
+
+def _same_host(url: str) -> bool:
+    """Compare an Origin/Referer URL to the request host."""
+    try:
+        return urlsplit(url).netloc.lower() == request.host.lower()
+    except ValueError:
+        return False
+
+
+@app.before_request
+def _reject_cross_origin_writes():
+    """Block browser-driven cross-site writes to the unauthenticated LAN app.
+
+    There is no user session to bind a traditional CSRF token to. Modern
+    browsers send Fetch Metadata and/or Origin/Referer on form and fetch POSTs,
+    so rejecting a cross-site value prevents a public web page from creating,
+    cloning, overwriting, or deleting weeks on the private service.
+    """
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        return None
+    if request.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
+        abort(403, description="cross-site writes are not allowed")
+    origin = request.headers.get("Origin")
+    if origin and not _same_host(origin):
+        abort(403, description="cross-origin writes are not allowed")
+    referer = request.headers.get("Referer")
+    if not origin and referer and not _same_host(referer):
+        abort(403, description="cross-origin writes are not allowed")
+    return None
+
+
+@app.after_request
+def _security_headers(response: Response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self'; "
+        "img-src 'self' data:; object-src 'none'; base-uri 'self'; "
+        "frame-ancestors 'none'; form-action 'self'",
+    )
+    if request.endpoint != "static":
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
+
+
+@app.errorhandler(PDFLayoutError)
+def _layout_error(exc: PDFLayoutError):
+    return render_template(
+        "error.html",
+        title=f"{exc.kind.title()} does not fit",
+        message=str(exc),
+    ), 422
+
+
+@app.errorhandler(SchemaVersionError)
+def _schema_error(exc: SchemaVersionError):
+    if request.method != "GET" or request.is_json:
+        return jsonify(ok=False, error=str(exc)), 409
+    return render_template(
+        "error.html",
+        title="Week data needs a newer application",
+        message=str(exc),
+    ), 409
+
+
+@app.errorhandler(413)
+def _too_large(_exc):
+    message = "The submitted week is too large. Shorten the content and try again."
+    if request.is_json:
+        return jsonify(ok=False, error=message), 413
+    return render_template(
+        "error.html", title="Submission too large", message=message
+    ), 413
 
 
 def _slug(text: str) -> str:
@@ -87,7 +169,9 @@ def healthz():
     try:
         conn = db.get_connection()
         try:
-            conn.execute("SELECT 1").fetchone()
+            # Verify that the application schema is queryable, not merely that
+            # SQLite can open the path.
+            conn.execute("SELECT COUNT(*) FROM weeks").fetchone()
         finally:
             conn.close()
     except Exception as exc:  # pragma: no cover - defensive
@@ -132,8 +216,8 @@ def new_from_sample():
 def clone(week_id: int):
     conn = db.get_connection()
     try:
-        _get_week_or_404(conn, week_id)
-        new_id = db.clone_week(conn, week_id)
+        source = _get_week_or_404(conn, week_id)
+        new_id = db.create_week(conn, source["data"], label=source["label"])
     finally:
         conn.close()
     return redirect(url_for("edit_week", week_id=new_id))

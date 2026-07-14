@@ -6,22 +6,22 @@ INSERT = {
     # name list. Categories can be added/removed in the form.
     "prayer": [
         {"label": "HOME",
-         "names": ["Laverne Leach", "Jim & Sharon Jensen", "Etta Pritchett",
-                   "Gerri Knutson", "Cheryll Borg", "Jan Kjelland",
-                   "Kathleen Schierkolk", "Eldwyn Van Bruggen", "Alton Himmerick"]},
+         "names": ["Avery Adams", "Cameron & Drew Baker", "Emerson Clark",
+                   "Finley Davis", "Harper Evans", "Jamie Foster",
+                   "Kendall Gray", "Logan Hayes", "Morgan Irving"]},
         {"label": "CARE CENTER",
-         "names": ["Wanda Niess", "Ronda Richards", "Bette Munkeby", "Paul Rieth"]},
+         "names": ["Parker Jones", "Quinn Kelly", "Reese Lane", "Sawyer Moore"]},
         {"label": "ELIM FARGO",
-         "names": ["Gary Skramstad"]},
+         "names": ["Taylor Nelson"]},
     ],
     # Standing prayer tail (rarely edited)
     "prayer_tail": (
         "Our nation\u2019s leaders, military &amp; families, local elected officials. "
         "Our church leaders. Pray for wisdom and guidance for the deacons as they "
         "consider God\u2019s direction in caring for the needs of the congregation. "
-        "AFLTS &amp; AFLBS Students. Pastor Norby &amp; family"
+        "AFLTS &amp; AFLBS Students. Pastor Ellis &amp; family"
     ),
-    "missionaries": "Todd &amp; Barb Schierkolk",
+    "missionaries": "Jamie &amp; Robin Example",
     "congregations": "Grace &amp; Zion Free Lutheran, Valley City",
     "sick_notice": "If you know of someone who is sick or hospitalized please contact the church office.",
     "memory_verse_ref": "1 Peter 5:6-7",
@@ -50,8 +50,8 @@ INSERT = {
                 "your information on file and for instructions on how to log into the online "
                 "directory and submit a photo. <b>If you wish to have a photo included in the "
                 "directory, you must submit one online or email a digital copy of a photo to "
-                "Sarah Meester at gracefree@msn.com</b> If you have any questions, please talk "
-                "to Sarah in the church office."
+                "the church office at office@example.org.</b> If you have any questions, please "
+                "contact the church office."
             ),
         },
         {
@@ -62,7 +62,7 @@ INSERT = {
                 "volunteers for various tasks, especially VBS and nursery helpers on Friday, "
                 "June 12. There are sign up sheets in the fellowship hall if you are available "
                 "to serve. Pre-registration to attend the conference is due May 31. Any "
-                "questions, please ask Pastor Dennis."
+                "questions, please ask the pastor."
             ),
         },
     ],

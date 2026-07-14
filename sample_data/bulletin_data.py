@@ -6,8 +6,8 @@ WEEKLY = {
     "date": "May 31, 2026",
 
     "prelude": [
-        ("Grace", "SueAnn Berntson, Roxanne Stensland"),
-        ("Zion", "Stacey Berntson"),
+        ("Grace", "Alex Morgan, Jordan Lee"),
+        ("Zion", "Taylor Reed"),
     ],
     "call_to_worship": "Psalm 8",
     "order_of_service": "Grace-<i>Ambassador</i> Pg. 2; Zion-<i>Concordia</i> Pg. 408",
@@ -43,7 +43,7 @@ WEEKLY = {
     "communion": {"enabled": False, "grace": False, "zion": False},
 
     "special_music": "",   # optional text rendered after "SPECIAL MUSIC ~ "
-    "preacher": "Pastor Dennis Norby",
+    "preacher": "Pastor Jordan Ellis",
     "sermon_text": "Genesis 1:1-2:4a (G-pg 1; Z-pg 1)",
 
     # Coming events — banner is an optional full-width line above the day list
@@ -53,7 +53,7 @@ WEEKLY = {
         ("Thursday, June 4",  [("Deacons Meet", "6:30 PM"),
                                 ("Boards Meet", "7:00 PM"),
                                 ("Council Meets", "8:00 PM")]),
-        ("Saturday, June 6",  [("Men\u2019s Prayer at Legacy Place", "7:00 AM")]),
+        ("Saturday, June 6",  [("Men\u2019s Prayer at Community Center", "7:00 AM")]),
         ("Sunday, June 7",    [("Lake Chapel", "9:00 AM"),
                                 ("Divine Worship with Holy Communion", "10:30 AM")]),
     ],
@@ -70,15 +70,15 @@ STANDING = {
     "service_title": "SUNDAY MORNING WORSHIP",
     "welcome": "We Welcome All Who Worship Here",
     "radio": "Lift High the Cross   KOVC (1490) <u>10 AM</u>   KSJB (600) <u>8 AM</u>",
-    "listen_live": "Sunday Mornings at 10:30 AM at www.gracefree.com",
+    "listen_live": "Sunday Mornings at 10:30 AM at church.example.org",
     "office_hours": "Church office hours are 8:00 AM \u2013 12:00 PM, Mon-Fri",
     "contact_lines": [
-        "Phone\u2013 845-2753   E-mail gracefree@msn.com",
-        "Website www.gracefree.com",
+        "Phone\u2013 (701) 555-0100   E-mail office@example.org",
+        "Website church.example.org",
     ],
     "staff": [
-        ("Senior Pastor Dennis Norby", "(C)815-883-1673 thenorbys@msn.com"),
-        ("Administrative Assistant- Sarah Meester", "(C)840-8336 gracefree@msn.com"),
-        ("Children\u2019s Ministry Leader\u2013 Erin Dahl", "(C)701-388-0631"),
+        ("Senior Pastor Jordan Ellis", "(C) (701) 555-0101 pastor@example.org"),
+        ("Administrative Assistant- Casey Morgan", "(C) (701) 555-0102 office@example.org"),
+        ("Children\u2019s Ministry Leader\u2013 Riley Taylor", "(C) (701) 555-0103"),
     ],
 }
