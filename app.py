@@ -8,7 +8,7 @@ Routes
   POST /weeks/<id>/delete     delete a week                  -> redirect to index
   GET  /weeks/<id>/edit       the sectioned edit form
   POST /weeks/<id>            save the form (JSON body)      -> JSON {ok, id}
-  GET  /weeks/<id>/generate   the download screen (two PDFs + duplex reminder)
+  GET  /weeks/<id>/generate   the download screen (two PDFs + print reminders)
   GET  /weeks/<id>/bulletin.pdf   [?dl=1 -> attachment]
   GET  /weeks/<id>/insert.pdf     [?dl=1 -> attachment]
 

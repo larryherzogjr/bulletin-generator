@@ -21,12 +21,10 @@ numbers, events split into two sections).
 - Two 5.5in panels: left = Order of Worship, right = Coming Events.
 - Print single-sided onto the pre-printed bulletin stock.
 
-**Insert** — a half-size sheet printed both sides.
-- Two pages, **5.5×8.5 portrait**.
-- Page 1 (front) = announcements; page 2 (back) = "Message & Notes".
-- Print **two-sided / duplex, flip on LONG edge**, paper size Statement / Half-Letter.
-  Surface this as a one-line reminder on the generate screen — long-edge flip keeps
-  the back upright; short-edge prints it upside down (the most common mistake).
+**Insert** — both half-sheet sides imposed on one full-size sheet.
+- One page, **11×8.5 landscape**.
+- Left panel = announcements; right panel = "Message & Notes".
+- Print **single-sided** on Letter paper in landscape orientation.
 
 ## Fonts
 Originals were **Arial** (body/sans) and **Times New Roman** (the prayer box + notes
@@ -37,7 +35,7 @@ sans/serif split exactly as in the templates.
 ## Templates (included, verified)
 - `templates/bulletin_template.html` — renders the bulletin inside from a `WEEKLY`
   and `STANDING` dict (passed as `w` and `s`).
-- `templates/insert_template.html` — renders the two-page duplex insert from an
+- `templates/insert_template.html` — renders the two-panel landscape insert from an
   `INSERT` dict (passed as `i`).
 Both use embedded print CSS and have been visually confirmed against the originals.
 Treat them as the source of truth for layout; the Flask app's job is to collect the
@@ -80,7 +78,7 @@ given week — collect once, render in both.
   snapshot.
 - Versioned JSON blobs preserve legacy prayer/hymn data; blobs from a newer
   unsupported version fail safely.
-- The renderer must return exactly one bulletin page and two insert pages. It
+- The renderer must return exactly one bulletin page and one landscape insert page. It
   reports a layout error when content cannot fit at a legible size.
 - The service is unauthenticated only inside its loopback/reverse-proxy trust
   boundary. The proxy must provide authentication before wider exposure.
@@ -94,7 +92,7 @@ given week — collect once, render in both.
    Insert). Keep it boring and obvious — repeatable rows for events, lessons, and
    announcements (add/remove). frontend-design matters here for the secretary's sake.
 4. Generate: buttons to download bulletin + insert (decide one-click bundle vs two
-   downloads — ask the user). Include the duplex reminder near the insert download.
+   downloads — ask the user). Include the Letter/landscape reminder near the insert download.
 5. Package as a systemd service; document the dev→prod loop like Sermon Broadcaster.
 
 ## Remaining external acceptance items

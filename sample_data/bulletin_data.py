@@ -26,7 +26,7 @@ WEEKLY = {
     ],
 
     # Optional sections (off by default). Baptism prints before Order of
-    # Service; Confirmation/Communion after the closing hymn.
+    # Service; Confirmation/Holy Communion after the closing hymn.
     "baptism": {"enabled": False, "text": ""},
 
     # Each hymn has a Grace and a Zion entry, each {num, title}. The Zion title

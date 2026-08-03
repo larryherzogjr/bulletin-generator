@@ -88,7 +88,7 @@ _SCALE_STEP = 0.02
 # not incidental template details.
 _PAGE_HEIGHT = 8.5 * 96
 _BULLETIN_WIDTH = 11 * 96
-_INSERT_WIDTH = 5.5 * 96
+_INSERT_WIDTH = 11 * 96
 
 
 class PDFLayoutError(RuntimeError):
@@ -111,7 +111,7 @@ def render_bulletin_html(weekly: dict, standing: dict, scale: float = 1.0) -> st
 
 
 def render_insert_html(insert: dict) -> str:
-    """Render the two-page duplex insert (front: announcements, back: Message & Notes)."""
+    """Render both half-sheet insert sides on one landscape letter sheet."""
     return _env.get_template("insert_template.html").render(i=insert)
 
 
@@ -130,7 +130,7 @@ _CLIP_SAFETY = 9.6
 def _class_box_overflows(document, class_name: str) -> bool:
     """True if text inside a fixed-height class would clip at the bottom.
 
-    The bulletin panels and insert pages have a fixed 8.5in height. Content can
+    The bulletin and insert panels have a fixed 8.5in height. Content can
     therefore cross a physical edge without page-count alone detecting it. We
     allow content to use the bottom padding and retain a small print-safe edge.
     """
@@ -204,17 +204,17 @@ def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
 
 
 def render_insert_pdf(insert: dict) -> bytes:
-    """Insert -> PDF bytes. Two pages, 5.5x8.5 portrait, print duplex / long-edge flip."""
+    """Insert -> PDF bytes. One 11x8.5 landscape sheet with two side-by-side panels."""
     html = render_insert_html(insert)
     document = HTML(string=html, base_url=str(BASE_DIR)).render()
     if (
-        not _has_expected_geometry(document, 2, _INSERT_WIDTH, _PAGE_HEIGHT)
+        not _has_expected_geometry(document, 1, _INSERT_WIDTH, _PAGE_HEIGHT)
         or _class_box_overflows(document, "page")
     ):
         raise PDFLayoutError(
             "insert",
-            "The insert content is too long to fit on exactly two 5.5 x 8.5 "
-            "inch pages. Shorten the prayer list, readings, announcements, "
+            "The insert content is too long to fit on one 11 x 8.5 inch "
+            "landscape sheet. Shorten the prayer list, readings, announcements, "
             "or bold notes and try again.",
         )
     return document.write_pdf()

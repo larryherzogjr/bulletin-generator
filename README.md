@@ -60,7 +60,7 @@ make check     # active DB integrity/schema plus sample/latest PDF render
 The print contracts are strict:
 
 - bulletin: exactly one 11 x 8.5 inch landscape page;
-- insert: exactly two 5.5 x 8.5 inch portrait pages.
+- insert: exactly one 11 x 8.5 inch landscape page with two half-sheet panels.
 
 The bulletin shrinks only to its minimum legible scale. If either document
 still does not fit, generation returns an actionable layout error rather than

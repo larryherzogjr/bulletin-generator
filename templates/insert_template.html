@@ -3,15 +3,20 @@
 <head>
 <meta charset="utf-8">
 <style>
-  @page { size: 5.5in 8.5in; margin: 0; }
+  @page { size: 11in 8.5in; margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
     font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
     font-size: 10pt; line-height: 1.16; color: #000;
   }
-  .page { width: 5.5in; height: 8.5in; padding: 0.36in 0.40in 0.30in 0.40in; }
-  .page.back { break-before: page; }
+  .sheet { width: 11in; height: 8.5in; font-size: 0; }
+  .page {
+    display: inline-block; vertical-align: top;
+    width: 5.5in; height: 8.5in;
+    padding: 0.36in 0.40in 0.30in 0.40in;
+    font-size: 10pt;
+  }
   .b { font-weight: 700; }
   .serif { font-family: "Liberation Serif", "Times New Roman", Times, serif; }
 
@@ -51,8 +56,9 @@
 </head>
 <body>
 
-  <!-- ============ FRONT: ANNOUNCEMENTS ============ -->
-  <div class="page front">
+  <div class="sheet">
+    <!-- ============ LEFT: ANNOUNCEMENTS ============ -->
+    <div class="page front">
 
     <div class="praybox">
       <div class="prayhead">
@@ -85,11 +91,12 @@
     <div class="bold-notes">
       {% for line in i.bold_notes %}<div>{{ line }}</div>{% endfor %}
     </div>
-  </div>
+    </div>
 
-  <!-- ============ BACK: MESSAGE & NOTES ============ -->
-  <div class="page back">
-    <div class="notes-title">{{ i.notes_heading }}</div>
+    <!-- ============ RIGHT: MESSAGE & NOTES ============ -->
+    <div class="page back">
+      <div class="notes-title">{{ i.notes_heading }}</div>
+    </div>
   </div>
 
 </body>

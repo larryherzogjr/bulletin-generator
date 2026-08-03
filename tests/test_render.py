@@ -34,9 +34,11 @@ def test_sample_pdfs_have_exact_print_geometry_and_text(sample_blob):
     insert = render_insert_pdf(sample_blob["insert"])
 
     assert _page_sizes(bulletin) == [(792.0, 612.0)]
-    assert _page_sizes(insert) == [(396.0, 612.0), (396.0, 612.0)]
+    assert _page_sizes(insert) == [(792.0, 612.0)]
     assert "SUNDAY MORNING WORSHIP" in PdfReader(BytesIO(bulletin)).pages[0].extract_text()
-    assert "Message & Notes" in PdfReader(BytesIO(insert)).pages[1].extract_text()
+    insert_text = PdfReader(BytesIO(insert)).pages[0].extract_text()
+    assert "Please be" in insert_text
+    assert "Message & Notes" in insert_text
     assert any("Liberation-Sans" in name for name in _font_names(bulletin))
     assert any("Liberation-Serif" in name for name in _font_names(insert))
 
@@ -63,6 +65,16 @@ def test_bulletin_overflow_fails_closed(sample_blob):
         render_bulletin_pdf(weekly, sample_blob["standing"])
 
 
+def test_bulletin_uses_holy_communion_wording(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["communion"] = {"enabled": True, "grace": True, "zion": True}
+
+    pdf = render_bulletin_pdf(weekly, sample_blob["standing"])
+    text = PdfReader(BytesIO(pdf)).pages[0].extract_text()
+
+    assert "HOLY COMMUNION ~ Grace and Zion" in text
+
+
 def test_insert_overflow_fails_closed(sample_blob):
     insert = deepcopy(sample_blob["insert"])
     insert["announcements"] = [
@@ -70,5 +82,5 @@ def test_insert_overflow_fails_closed(sample_blob):
         for number in range(12)
     ]
 
-    with pytest.raises(PDFLayoutError, match="exactly two"):
+    with pytest.raises(PDFLayoutError, match="one 11 x 8.5"):
         render_insert_pdf(insert)
