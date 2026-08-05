@@ -96,7 +96,5 @@ given week — collect once, render in both.
 5. Package as a systemd service; document the dev→prod loop like Sermon Broadcaster.
 
 ## Remaining external acceptance items
-- The "Please be Praying for…" prayer-box graphic is a styled placeholder in the
-  template; swap in the real image asset when available.
 - Add original output files to a private reference location and establish the
   approved visual-diff tolerance. They are not committed today.

@@ -61,6 +61,195 @@
     return document.getElementById(id).content.firstElementChild.cloneNode(true);
   }
 
+  // Every repeatable collection can be reordered. Nested event rows may move
+  // between dates in the same parish; prayer names may move between categories.
+  // Other collections remain inside their own semantic list.
+  function orderConfig(container) {
+    if (container.matches("[data-list]")) {
+      return { item: ".row", group: "list:" + container.dataset.list, label: "row" };
+    }
+    if (container.matches("[data-events]")) {
+      return { item: ".event-day", group: "days:" + container.dataset.events, label: "date" };
+    }
+    if (container.classList.contains("day-items")) {
+      const events = container.closest("[data-events]");
+      return { item: ".row", group: "event-items:" + events.dataset.events, label: "event" };
+    }
+    if (container.matches("[data-anns]")) {
+      return { item: ".ann-row", group: "announcements", label: "announcement" };
+    }
+    if (container.matches("[data-prayer]")) {
+      return { item: ".prayer-cat", group: "prayer-categories", label: "prayer category" };
+    }
+    if (container.classList.contains("cat-names")) {
+      return { item: ".row", group: "prayer-names", label: "prayer name" };
+    }
+    return null;
+  }
+
+  function directItems(container) {
+    const config = orderConfig(container);
+    if (!config) return [];
+    return Array.from(container.children).filter(function (child) {
+      return child.matches(config.item);
+    });
+  }
+
+  function addDragHandle(item, label) {
+    if (item.querySelector(":scope > .drag-handle, :scope > .row > .drag-handle")) return;
+
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.setAttribute("role", "button");
+    handle.setAttribute("tabindex", "0");
+    handle.setAttribute("aria-label", "Reorder " + label);
+    handle.title = "Drag to reorder; use arrow keys when focused";
+    handle.textContent = "↕";
+
+    const heading = item.querySelector(":scope > .day-head, :scope > .cat-head");
+    (heading || item).insertBefore(handle, (heading || item).firstChild);
+    item.classList.add("orderable-item");
+  }
+
+  function refreshOrderables() {
+    form.querySelectorAll(
+      "[data-list], [data-events], .day-items, [data-anns], [data-prayer], .cat-names"
+    ).forEach(function (container) {
+      const config = orderConfig(container);
+      if (!config) return;
+      container.classList.add("orderable-list");
+      container.dataset.orderGroup = config.group;
+      directItems(container).forEach(function (item) {
+        addDragHandle(item, config.label);
+      });
+    });
+  }
+
+  let draggedItem = null;
+  let sourceContainer = null;
+  let sourceIndex = -1;
+  let activeDropContainer = null;
+  let dragHandle = null;
+  let dragPointerId = null;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragStarted = false;
+
+  function directItemAt(container, target) {
+    return directItems(container).find(function (item) {
+      return item === target || item.contains(target);
+    }) || null;
+  }
+
+  function clearDragState() {
+    if (draggedItem) draggedItem.classList.remove("dragging");
+    form.querySelectorAll(".orderable-list.drag-over").forEach(function (container) {
+      container.classList.remove("drag-over");
+    });
+    draggedItem = null;
+    sourceContainer = null;
+    sourceIndex = -1;
+    activeDropContainer = null;
+    dragHandle = null;
+    dragPointerId = null;
+    dragStarted = false;
+    document.body.classList.remove("reordering");
+  }
+
+  form.addEventListener("pointerdown", function (e) {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle || e.button !== 0) return;
+    e.preventDefault();
+    handle.focus();
+    dragHandle = handle;
+    dragPointerId = e.pointerId;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    draggedItem = handle.closest(".orderable-item");
+    sourceContainer = draggedItem.parentElement;
+    sourceIndex = directItems(sourceContainer).indexOf(draggedItem);
+    handle.setPointerCapture(e.pointerId);
+  });
+
+  form.addEventListener("pointermove", function (e) {
+    if (!draggedItem || e.pointerId !== dragPointerId) return;
+    if (!dragStarted) {
+      const distance = Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY);
+      if (distance < 4) return;
+      dragStarted = true;
+      draggedItem.classList.add("dragging");
+      document.body.classList.add("reordering");
+    }
+    e.preventDefault();
+
+    // Keep long lists usable: dragging near a viewport edge scrolls the page
+    // while pointer capture keeps the item attached to the handle.
+    const scrollEdge = 80;
+    if (e.clientY < scrollEdge) {
+      window.scrollBy(0, -Math.min(18, scrollEdge - e.clientY));
+    } else if (e.clientY > window.innerHeight - scrollEdge) {
+      window.scrollBy(0, Math.min(18, e.clientY - (window.innerHeight - scrollEdge)));
+    }
+
+    const pointed = document.elementFromPoint(e.clientX, e.clientY);
+    const container = pointed ? pointed.closest(".orderable-list") : null;
+    if (!container || container.dataset.orderGroup !== sourceContainer.dataset.orderGroup) return;
+
+    if (activeDropContainer !== container) {
+      if (activeDropContainer) activeDropContainer.classList.remove("drag-over");
+      activeDropContainer = container;
+      activeDropContainer.classList.add("drag-over");
+    }
+
+    const targetItem = directItemAt(container, pointed);
+    if (!targetItem || targetItem === draggedItem) {
+      if (!targetItem && container.lastElementChild !== draggedItem) {
+        container.appendChild(draggedItem);
+      }
+      return;
+    }
+
+    const targetRect = targetItem.getBoundingClientRect();
+    const after = e.clientY > targetRect.top + targetRect.height / 2;
+    const reference = after ? targetItem.nextElementSibling : targetItem;
+    if (reference !== draggedItem) container.insertBefore(draggedItem, reference);
+  });
+
+  function finishPointerDrag(e) {
+    if (!draggedItem || e.pointerId !== dragPointerId) return;
+    const finalContainer = draggedItem.parentElement;
+    const finalIndex = directItems(finalContainer).indexOf(draggedItem);
+    if (dragStarted && (finalContainer !== sourceContainer || finalIndex !== sourceIndex)) {
+      markDirty();
+    }
+    if (dragHandle.hasPointerCapture(e.pointerId)) dragHandle.releasePointerCapture(e.pointerId);
+    clearDragState();
+  }
+
+  form.addEventListener("pointerup", finishPointerDrag);
+  form.addEventListener("pointercancel", finishPointerDrag);
+
+  form.addEventListener("keydown", function (e) {
+    const handle = e.target.closest(".drag-handle");
+    if (!handle || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    const item = handle.closest(".orderable-item");
+    const container = item.parentElement;
+    const items = directItems(container);
+    const index = items.indexOf(item);
+    if (e.key === "ArrowUp" && index > 0) {
+      container.insertBefore(item, items[index - 1]);
+    } else if (e.key === "ArrowDown" && index < items.length - 1) {
+      container.insertBefore(item, items[index + 1].nextElementSibling);
+    } else {
+      return;
+    }
+    e.preventDefault();
+    markDirty();
+    handle.focus();
+  });
+
+  refreshOrderables();
+
   form.addEventListener("click", function (e) {
     const t = e.target;
 
@@ -102,6 +291,7 @@
       names.appendChild(cloneTpl("tpl-single"));
       markDirty();
     }
+    refreshOrderables();
   });
 
   // CSS.escape isn't universal for attr selectors here; dots are fine in

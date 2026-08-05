@@ -10,11 +10,9 @@ persistence, PDF preview/download, and a systemd/Gunicorn deployment. The
 sample build and automated suite verify the required page sizes and fail if
 content would produce an invalid print layout.
 
-Two external artifacts are still needed for full visual acceptance:
+One external artifact is still needed for full visual acceptance:
 
-- the original Publisher/PDF output for a true reference-image comparison;
-- the real "Please be Praying for..." graphic, which is still a styled text
-  placeholder in the insert template.
+- the original Publisher/PDF output for a true reference-image comparison.
 
 ## Architecture
 

@@ -22,19 +22,13 @@
 
   /* ---- Prayer box ---- */
   .praybox {
-    border: 1px dotted #000; padding: 7pt 8pt;
+    border: 1px dotted #000; padding: 10pt 11pt;
     font-family: "Liberation Serif", "Times New Roman", Times, serif;
-    font-size: 8.5pt; line-height: 1.2;
+    font-size: 10pt; line-height: 1.22;
+    min-height: 3.2in;
   }
-  /* Float (not flex) for the label: WeasyPrint duplicate-paints flex-child
-     backgrounds, which made this gray box render as 2-3 overlapping copies. */
-  .prayhead::after { content: ""; display: block; clear: both; }
-  .prayhead .label { float: left; width: 76pt; margin: 0 8pt 4pt 0;
-                     font-style: italic; font-weight: 700;
-                     text-align: center; line-height: 1.05; font-size: 11pt;
-                     padding: 6pt 2pt; background: #eee; border: 1px dotted #999; }
-  .prayhead .firstpara { margin: 0; text-align: justify; }
   .praybox p { margin: 5pt 0 0; text-align: justify; }
+  .praybox .firstpara { margin-top: 0; }
   .praybox .tag { font-weight: 700; }
   .sick { font-style: italic; font-weight: 700; }
 
@@ -61,12 +55,9 @@
     <div class="page front">
 
     <div class="praybox">
-      <div class="prayhead">
-        <span class="label">Please be<br>Praying&nbsp;for...</span>
-        <p class="firstpara"><span class="tag">Pray for one another.</span>
-           {% for cat in i.prayer %}<span class="tag">{{ cat.label }}</span>: {{ cat.names|join(", ") }}{% if loop.last %}. {% else %}; {% endif %}
-           {% endfor %}{{ i.prayer_tail }}</p>
-      </div>
+      <p class="firstpara"><span class="tag">Pray for one another.</span>
+         {% for cat in i.prayer %}<span class="tag">{{ cat.label }}</span>: {{ cat.names|join(", ") }}{% if loop.last %}. {% else %}; {% endif %}
+         {% endfor %}{{ i.prayer_tail }}</p>
       <p><span class="tag">AFLC Missionaries:</span> {{ i.missionaries }}<br>
          <span class="tag">AFLC Congregations:</span> {{ i.congregations }}</p>
       <p class="sick">{{ i.sick_notice }}</p>

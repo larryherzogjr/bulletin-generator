@@ -3,11 +3,15 @@ from io import BytesIO
 
 import pytest
 from pypdf import PdfReader
+from weasyprint import HTML
 
 from render import (
+    BASE_DIR,
     PDFLayoutError,
+    _iter_boxes,
     render_bulletin_html,
     render_bulletin_pdf,
+    render_insert_html,
     render_insert_pdf,
 )
 
@@ -29,6 +33,22 @@ def _font_names(pdf):
     return names
 
 
+def _outer_height_for_class(html, class_name):
+    document = HTML(string=html, base_url=str(BASE_DIR)).render()
+    for box in _iter_boxes(document.pages[0]._page_box):
+        element = getattr(box, "element", None)
+        classes = (element.get("class") or "").split() if element is not None else []
+        if class_name in classes:
+            return (
+                box.height
+                + box.padding_top
+                + box.padding_bottom
+                + box.border_top_width
+                + box.border_bottom_width
+            )
+    raise AssertionError(f"class not found in rendered document: {class_name}")
+
+
 def test_sample_pdfs_have_exact_print_geometry_and_text(sample_blob):
     bulletin = render_bulletin_pdf(sample_blob["weekly"], sample_blob["standing"])
     insert = render_insert_pdf(sample_blob["insert"])
@@ -37,10 +57,26 @@ def test_sample_pdfs_have_exact_print_geometry_and_text(sample_blob):
     assert _page_sizes(insert) == [(792.0, 612.0)]
     assert "SUNDAY MORNING WORSHIP" in PdfReader(BytesIO(bulletin)).pages[0].extract_text()
     insert_text = PdfReader(BytesIO(insert)).pages[0].extract_text()
-    assert "Please be" in insert_text
+    assert "Please be" not in insert_text
+    assert "Pray" in insert_text
+    assert "HOME:" in insert_text
     assert "Message & Notes" in insert_text
     assert any("Liberation-Sans" in name for name in _font_names(bulletin))
     assert any("Liberation-Serif" in name for name in _font_names(insert))
+
+
+def test_insert_prayer_box_has_larger_minimum_and_can_grow_to_half_page(sample_blob):
+    insert = deepcopy(sample_blob["insert"])
+    minimum_height = _outer_height_for_class(render_insert_html(insert), "praybox")
+    assert minimum_height >= 3.19 * 96
+
+    insert["announcements"] = []
+    insert["bold_notes"] = []
+    insert["next_readings"] = []
+    insert["prayer_tail"] += " Additional prayer request." * 25
+    expanded_height = _outer_height_for_class(render_insert_html(insert), "praybox")
+    assert expanded_height >= 4.2 * 96
+    assert _page_sizes(render_insert_pdf(insert)) == [(792.0, 612.0)]
 
 
 def test_rich_text_allowlist_escapes_non_formatting_markup(sample_blob):

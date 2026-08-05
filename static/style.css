@@ -80,7 +80,7 @@ label input, label textarea, .hymn-row input, .row input, .ann-row input, .ann-r
 }
 textarea { resize: vertical; }
 .hint { font-weight: 400; color: var(--muted); font-size: .78rem; font-style: italic; }
-.formatting-note {
+.formatting-note, .reordering-note {
   background: #eef4fb; border: 1px solid #cfe0f2; border-radius: 6px;
   padding: .6rem .8rem; margin-bottom: 1rem; font-size: .85rem; line-height: 1.5;
 }
@@ -103,6 +103,23 @@ textarea { resize: vertical; }
 .row.pair input[data-col="1"] { flex: 1; }
 .row.single input { flex: 1; }
 .row-del { flex: 0 0 auto; }
+
+/* drag-and-drop ordering for every repeatable collection */
+.drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 1.7rem; width: 1.7rem; min-height: 1.7rem;
+  border: 1px solid var(--line); border-radius: 5px;
+  background: #fff; color: var(--muted); cursor: grab;
+  font-size: 1rem; line-height: 1; user-select: none; touch-action: none;
+}
+.drag-handle:hover, .drag-handle:focus-visible {
+  border-color: var(--blue); color: var(--blue); outline: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.ann-row > .drag-handle { float: right; margin: 0 0 .35rem .45rem; }
+.orderable-item.dragging { opacity: .38; }
+.orderable-list.drag-over { outline: 2px dashed #8aa8c7; outline-offset: 3px; }
+body.reordering { cursor: grabbing; user-select: none; }
 
 /* hymns */
 .hymn-row { display: flex; gap: .45rem; align-items: center; margin-bottom: .5rem; }

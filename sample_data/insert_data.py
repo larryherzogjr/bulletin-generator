@@ -1,7 +1,7 @@
 # Insert content. Same WEEKLY vs STANDING split idea as the bulletin.
 
 INSERT = {
-    # ---- Prayer box (top-left, bordered) ----
+    # ---- Prayer box (top-left, bordered; no decorative image) ----
     # Ordered, fully editable categories: each has a renamable label and its own
     # name list. Categories can be added/removed in the form.
     "prayer": [
