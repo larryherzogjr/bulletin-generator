@@ -20,11 +20,18 @@ Shape (three sections, matching the render functions):
     opening_hymn/sermon_hymn/closing_hymn:
       {grace: {num, title}, zion: {num, title}}
     grace_events/zion_events: [[day, [[name, time], ...]], ...]
+    large_print:
+      call_to_worship_text, opening_hymn_text,
+      first_lesson_label, first_lesson_text,
+      second_lesson_label, second_lesson_text,
+      sermon_hymn_text, closing_hymn_text
 
   standing:
     service_title, welcome, radio, listen_live, office_hours
     contact_lines: [str, ...]
     staff:         [[name, detail], ...]
+    large_print_responses: {kyrie, gospel, gloria_patri, doxology}
+    creed_texts: {apostles, nicene, athanasian}
 
   insert:
     prayer_tail, missionaries, congregations, sick_notice, notes_heading,
@@ -43,7 +50,7 @@ from copy import deepcopy
 # Stored blobs without a version are legacy version 0. Normalizing them applies
 # the existing prayer/hymn migrations and upgrades them to this version. A blob
 # from a newer application is rejected instead of silently losing unknown data.
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 class SchemaVersionError(ValueError):
@@ -52,6 +59,132 @@ class SchemaVersionError(ValueError):
 
 # Confession of Faith rotates among these three (radio button in the form).
 CREEDS = ["Apostles' Creed", "Nicene Creed", "Athanasian Creed"]
+
+# Stable storage keys for the editable creed wording. The display names remain
+# the existing radio-button values so old weeks continue to select correctly.
+CREED_KEYS = {
+    "Apostles' Creed": "apostles",
+    "Nicene Creed": "nicene",
+    "Athanasian Creed": "athanasian",
+}
+
+DEFAULT_LARGE_PRINT_RESPONSES = {
+    "kyrie": (
+        "O God the Father in heaven, have mercy upon us!\n"
+        "O God the Son, Redeemer of the world, have mercy upon us!\n"
+        "O God the Holy Ghost, true Comforter, have mercy upon us!"
+    ),
+    "gospel": "God be praised for\nHis glad tidings!",
+    "gloria_patri": (
+        "Glory be to the Father,\n"
+        "And to the Son,\n"
+        "And to the Holy Ghost!\n"
+        "As it was in the beginning\n"
+        "is now and ever shall be,\n"
+        "world without end.\n"
+        "Amen. Amen."
+    ),
+    "doxology": (
+        "Praise God from Whom all blessings flow\n"
+        "Praise Him, all creatures here below\n"
+        "Praise Him above, ye heavenly hosts\n"
+        "Praise Father, Son, and Holy Ghost.\n"
+        "Amen."
+    ),
+}
+
+# These are standing, editable defaults. Churches use small wording and
+# capitalization variants, so the editor exposes all three texts instead of
+# baking them permanently into the PDF template.
+DEFAULT_CREED_TEXTS = {
+    "apostles": (
+        "I believe in God the Father Almighty, Maker of heaven and earth.\n\n"
+        "And in Jesus Christ, His only Son, our Lord; Who was conceived by the "
+        "Holy Spirit, Born of the virgin Mary; Suffered under Pontius Pilate, "
+        "Was crucified, died, and was buried; He descended into hell; The third "
+        "day He rose again from the dead; He ascended into heaven, And is seated "
+        "on the right hand of God the Father Almighty; From where He shall come "
+        "to judge the living and the dead.\n\n"
+        "I believe in the Holy Spirit; The holy Christian Church; The Communion "
+        "of Saints; The Forgiveness of sins; The Resurrection of the body; And "
+        "the Life everlasting. Amen."
+    ),
+    "nicene": (
+        "I believe in one God, the Father Almighty, Maker of heaven and earth, "
+        "And of all things visible and invisible.\n\n"
+        "And in one Lord Jesus Christ, the only-begotten Son of God, Begotten of "
+        "His Father before all worlds, God of God, Light of Light, Very God of "
+        "Very God, Begotten, not made, Being of one substance with the Father, "
+        "By whom all things were made; Who for us and for our salvation, came "
+        "down from heaven, And was incarnate by the Holy Spirit of the virgin "
+        "Mary, And was made man; And was crucified also for us under Pontius "
+        "Pilate. He suffered and was buried; And the third day He rose again "
+        "according to the Scriptures, And ascended into heaven, And is seated on "
+        "the right hand of the Father. And He shall come again with glory to "
+        "judge both the living and the dead: Whose kingdom shall have no end.\n\n"
+        "And I believe in the Holy Spirit, The Lord and Giver of Life, Who "
+        "proceeds from the Father and the Son, Who with the Father and the Son "
+        "together is worshiped and glorified, Who spoke by the Prophets. And I "
+        "believe one holy Christian and apostolic Church. I acknowledge one "
+        "Baptism for the remission of sins. And I look for the Resurrection of "
+        "the dead. And the Life of the world to come. Amen."
+    ),
+    "athanasian": (
+        "Whosoever will be saved, before all things it is necessary that he hold "
+        "the Christian faith. Which faith except everyone do keep whole and "
+        "undefiled, without doubt he shall perish everlastingly. And the "
+        "Christian faith is this: That we worship one God in Trinity, and "
+        "Trinity in Unity; Neither confounding the Persons, nor dividing the "
+        "Substance. For there is one Person of the Father, another of the Son, "
+        "and another of the Holy Spirit. But the Godhead of the Father, of the "
+        "Son, and of the Holy Spirit is all one: the glory equal, the majesty "
+        "coeternal. Such as the Father is, such is the Son, and such is the Holy "
+        "Spirit. The Father uncreated, the Son uncreated, and the Holy Spirit "
+        "uncreated. The Father incomprehensible, the Son incomprehensible, and "
+        "the Holy Spirit incomprehensible. The Father eternal, the Son eternal, "
+        "and the Holy Spirit eternal. And yet they are not three Eternals, but "
+        "one Eternal. As there are not three Uncreated nor three "
+        "Incomprehensibles, but one Uncreated and one Incomprehensible. So "
+        "likewise the Father is almighty, the Son almighty, and the Holy Spirit "
+        "almighty. And yet they are not three Almighties, but one Almighty. So "
+        "the Father is God, the Son is God, and the Holy Spirit is God. And yet "
+        "they are not three Gods, but one God. So likewise the Father is Lord, "
+        "the Son Lord, and the Holy Spirit Lord. And yet not three Lords, but one "
+        "Lord. For as we are compelled by the Christian verity to acknowledge "
+        "every Person by Himself to be both God and Lord, so are we forbidden by "
+        "the Christian faith to say that there are three Gods or three Lords. "
+        "The Father is made of none: neither created nor begotten. The Son is of "
+        "the Father alone: not made nor created, but begotten. The Holy Spirit is "
+        "of the Father and of the Son: neither made nor created nor begotten, but "
+        "proceeding. So there is one Father, not three Fathers; one Son, not "
+        "three Sons; one Holy Spirit, not three Holy Spirits. And in this Trinity "
+        "none is before or after another; none is greater or less than another. "
+        "But the whole three Persons are coeternal together and coequal, so that "
+        "in all things, as is aforesaid, the Unity in Trinity and the Trinity in "
+        "Unity is to be worshiped. He, therefore, that will be saved must thus "
+        "think of the Trinity.\n\n"
+        "Furthermore, it is necessary to everlasting salvation that he also "
+        "believe faithfully the incarnation of our Lord Jesus Christ. For the "
+        "right faith is that we believe and confess that our Lord Jesus Christ, "
+        "the Son of God, is God and Man; God of the Substance of the Father, "
+        "begotten before the worlds; and Man of the substance of His mother, born "
+        "in the world; Perfect God and perfect Man, of a reasonable soul and "
+        "human flesh subsisting; Equal to the Father as touching His Godhead, and "
+        "inferior to the Father as touching His manhood; Who, although He is God "
+        "and Man, yet He is not two, but one Christ: One, not by conversion of "
+        "the Godhead into flesh, but by taking the manhood into God; One "
+        "altogether, not by confusion of Substance, but by unity of Person. For "
+        "as the reasonable soul and flesh is one man, so God and Man is one "
+        "Christ; Who suffered for our salvation; descended into hell; rose again "
+        "the third day from the dead; He ascended into heaven; He is seated on "
+        "the right hand of the Father, God Almighty; from where He shall come to "
+        "judge the living and the dead. At whose coming all men shall rise again "
+        "with their bodies and shall give an account of their own works. And they "
+        "that have done good shall go into life everlasting; and they that have "
+        "done evil, into everlasting fire. This is the Christian faith; which "
+        "except a man believe faithfully and firmly, he cannot be saved."
+    ),
+}
 
 # Hymn sub-dict keys.
 _HYMNS = ("opening_hymn", "sermon_hymn", "closing_hymn")
@@ -94,6 +227,16 @@ def blank_blob() -> dict:
             "zion_events_banner": "",    # top of "Coming Events at Zion"
             "zion_events": [],
             "below_events": "",          # below the Zion section
+            "large_print": {
+                "call_to_worship_text": "",
+                "opening_hymn_text": "",
+                "first_lesson_label": "First Scripture Lesson",
+                "first_lesson_text": "",
+                "second_lesson_label": "Second Scripture Lesson",
+                "second_lesson_text": "",
+                "sermon_hymn_text": "",
+                "closing_hymn_text": "",
+            },
         },
         "standing": {
             "service_title": "",
@@ -103,6 +246,8 @@ def blank_blob() -> dict:
             "office_hours": "",
             "contact_lines": [],
             "staff": [],
+            "large_print_responses": deepcopy(DEFAULT_LARGE_PRINT_RESPONSES),
+            "creed_texts": deepcopy(DEFAULT_CREED_TEXTS),
         },
         "insert": {
             # Ordered, fully editable prayer categories: [{label, names: [str]}].
@@ -275,7 +420,13 @@ def _migrate_v0_to_v1(migrated: dict) -> dict:
     return migrated
 
 
-_MIGRATIONS = {0: _migrate_v0_to_v1}
+def _migrate_v1_to_v2(migrated: dict) -> dict:
+    """Add the optional large-print content and standing wording defaults."""
+    migrated["schema_version"] = 2
+    return migrated
+
+
+_MIGRATIONS = {0: _migrate_v0_to_v1, 1: _migrate_v1_to_v2}
 
 
 def migrate_blob(blob: dict) -> dict:
@@ -329,12 +480,29 @@ def normalize_blob(blob: dict) -> dict:
     w["communion"] = _communion(w_in.get("communion"))
     w["grace_events"] = _events(w_in.get("grace_events"))
     w["zion_events"] = _events(w_in.get("zion_events"))
+    lp_in = w_in.get("large_print", {}) if isinstance(w_in.get("large_print"), dict) else {}
+    for k in w["large_print"]:
+        w["large_print"][k] = _s(lp_in.get(k, w["large_print"][k]))
 
     s = b["standing"]
     for k in ("service_title", "welcome", "radio", "listen_live", "office_hours"):
         s[k] = _s(s_in.get(k))
     s["contact_lines"] = _str_list(s_in.get("contact_lines"))
     s["staff"] = _pairs(s_in.get("staff"))
+    responses_in = (
+        s_in.get("large_print_responses", {})
+        if isinstance(s_in.get("large_print_responses"), dict) else {}
+    )
+    for k in s["large_print_responses"]:
+        s["large_print_responses"][k] = _s(
+            responses_in.get(k, s["large_print_responses"][k])
+        )
+    creed_texts_in = (
+        s_in.get("creed_texts", {})
+        if isinstance(s_in.get("creed_texts"), dict) else {}
+    )
+    for k in s["creed_texts"]:
+        s["creed_texts"][k] = _s(creed_texts_in.get(k, s["creed_texts"][k]))
 
     i = b["insert"]
     for k in ("prayer_tail", "missionaries", "congregations", "sick_notice",

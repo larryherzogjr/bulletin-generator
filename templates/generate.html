@@ -41,6 +41,20 @@
         <a class="btn" href="{{ url_for('insert_pdf', week_id=week.id) }}" target="_blank">Preview</a>
       </div>
     </section>
+
+    <!-- ---- Large-print booklet ---- -->
+    <section class="card gen-card">
+      <h2>Large-print booklet</h2>
+      <p class="spec">Four pages · 17 × 11 in landscape · two duplex Tabloid sheets.</p>
+      <div class="duplex-callout">
+        <strong>Print double-sided, landscape, flipping on the short edge.</strong>
+        Keep the PDF page order. Place the second sheet inside the first, then fold both sheets together.
+      </div>
+      <div class="gen-actions">
+        <a class="btn primary" href="{{ url_for('large_print_pdf', week_id=week.id, dl=1) }}">Download large-print booklet</a>
+        <a class="btn" href="{{ url_for('large_print_pdf', week_id=week.id) }}" target="_blank">Preview</a>
+      </div>
+    </section>
   </div>
 </main>
 </body>

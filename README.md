@@ -1,7 +1,7 @@
 # Grace & Zion Bulletin Generator
 
 Internal Flask application for editing weekly Grace & Zion worship content and
-generating the two print-ready PDFs used each Sunday.
+generating the three print-ready PDFs used each Sunday.
 
 ## Current status
 
@@ -22,7 +22,7 @@ One external artifact is still needed for full visual acceptance:
 | Editing UI | `templates/form.html`, `static/form.js`, `static/style.css` | Dynamic nested form and serialized saves |
 | Data contract | `schema.py` | Versioned canonical shape, cleanup, legacy migration |
 | Persistence | `db.py` | One SQLite row and JSON snapshot per week |
-| PDF rendering | `render.py`, `templates/*_template.html` | Jinja + WeasyPrint fixed-page layouts |
+| PDF rendering | `render.py`, `templates/*_template.html` | Jinja + WeasyPrint layouts plus booklet imposition |
 | Operations | `manage.py`, `deploy/` | Checks, backups, rendering, systemd deployment |
 
 Standing information is snapshotted into every week. Editing a current week
@@ -50,7 +50,7 @@ runtime plus pytest/PDF inspection tools.
 
 ```sh
 make test      # pytest suite: schema, DB, HTTP/security, PDF contracts
-make build     # out/bulletin.pdf and out/insert.pdf
+make build     # bulletin, insert, and large-print booklet under out/
 make verify    # tests followed by the sample build
 make check     # active DB integrity/schema plus sample/latest PDF render
 ```
@@ -59,10 +59,12 @@ The print contracts are strict:
 
 - bulletin: exactly one 11 x 8.5 inch landscape page;
 - insert: exactly one 11 x 8.5 inch landscape page with two half-sheet panels.
+- large-print booklet: exactly four 17 x 11 inch landscape pages, imposed as
+  two duplex Tabloid sheets in `8|1, 2|7, 6|3, 4|5` logical-page order.
 
-The bulletin shrinks only to its minimum legible scale. If either document
-still does not fit, generation returns an actionable layout error rather than
-a clipped or extra-page PDF.
+The bulletin and large-print text shrink only to their minimum legible scales.
+If any document still does not fit, generation returns an actionable layout
+error rather than a clipped or extra-page PDF.
 
 ## Run locally
 
@@ -74,7 +76,9 @@ a clipped or extra-page PDF.
 The home page lists saved weeks. Clone the most recent comparable week, edit
 the changed sections, save, and open Generate. The editor waits for an active
 save before navigating to the generated files and warns while changes or a
-save are pending.
+save are pending. Print the large-print booklet double-sided on two Tabloid
+sheets, flipping on the short edge; nest the second sheet inside the first
+before folding.
 
 ## Database operations
 

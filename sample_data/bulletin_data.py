@@ -11,7 +11,7 @@ WEEKLY = {
     ],
     "call_to_worship": "Psalm 8",
     "order_of_service": "Grace-<i>Ambassador</i> Pg. 2; Zion-<i>Concordia</i> Pg. 408",
-    "confession_of_faith": "Athanasian Creed",
+    "confession_of_faith": "Nicene Creed",
 
     "memory_verse_ref": "1 Peter 5:6-7",
     "memory_verse_text": (
@@ -64,6 +64,47 @@ WEEKLY = {
         ("Sunday, June 7",    [("Divine Worship with Holy Communion", "9:00 AM")]),
     ],
     "below_events": "",
+    "large_print": {
+        "call_to_worship_text": (
+            "O Lord our Lord, how excellent is thy name in all the earth! "
+            "When I consider thy heavens, the work of thy fingers, the moon and "
+            "the stars, which thou hast ordained; What is man, that thou art "
+            "mindful of him? O Lord our Lord, how excellent is thy name in all the earth!"
+        ),
+        "opening_hymn_text": (
+            "1 All creatures of our God and King, lift up your voice and with us sing.\n\n"
+            "2 Thou rushing wind that art so strong, praise Him and magnify the Lord.\n\n"
+            "3 Let all things their Creator bless, and worship Him in humbleness."
+        ),
+        "first_lesson_label": "Epistle Lesson",
+        "first_lesson_text": (
+            "Peter, standing up with the eleven, lifted up his voice and said: "
+            "Jesus of Nazareth, a man approved of God among you by miracles and "
+            "wonders and signs, was delivered by the determinate counsel and "
+            "foreknowledge of God. This Jesus hath God raised up, whereof we all "
+            "are witnesses. Therefore let all the house of Israel know assuredly, "
+            "that God hath made that same Jesus both Lord and Christ."
+        ),
+        "second_lesson_label": "Gospel Lesson",
+        "second_lesson_text": (
+            "Then the eleven disciples went away into Galilee, into a mountain "
+            "where Jesus had appointed them. And Jesus came and spake unto them, "
+            "saying, All power is given unto me in heaven and in earth. Go ye "
+            "therefore, and teach all nations, baptizing them in the name of the "
+            "Father, and of the Son, and of the Holy Ghost; and, lo, I am with "
+            "you alway, even unto the end of the world. Amen."
+        ),
+        "sermon_hymn_text": (
+            "1 O for a thousand tongues to sing my great Redeemer's praise.\n\n"
+            "2 Jesus! the name that charms our fears, that bids our sorrows cease.\n\n"
+            "3 He breaks the power of canceled sin; He sets the prisoner free."
+        ),
+        "closing_hymn_text": (
+            "1 Immortal, invisible, God only wise, in light inaccessible hid from our eyes.\n\n"
+            "2 Unresting, unhasting, and silent as light, nor wanting, nor wasting, Thou rulest in might.\n\n"
+            "3 Great Father of glory, pure Father of light, Thine angels adore Thee, all veiling their sight."
+        ),
+    },
 }
 
 STANDING = {

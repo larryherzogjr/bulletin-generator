@@ -89,6 +89,12 @@ textarea { resize: vertical; }
   padding: 0 .25rem; font-size: .82rem;
 }
 .subhead { font-weight: 700; margin: 1rem 0 .5rem; font-size: .9rem; }
+.section-note { color: var(--muted); font-size: .86rem; margin: -.25rem 0 1rem; }
+.card > label + label, .card > .grid + label, .card > label + .grid { margin-top: .85rem; }
+.large-print-standing {
+  border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .8rem;
+}
+.large-print-standing > label { margin-top: .75rem; }
 
 /* creed radios */
 .creed { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .8rem; margin: 1rem 0; }
@@ -179,7 +185,7 @@ details[open] summary::before { content: "▾ "; }
 
 /* generate screen */
 .gen-sub { color: var(--muted); font-size: 1rem; margin: -.3rem 0 1rem; }
-.gen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.gen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1rem; }
 .gen-card h2 { font-size: 1.1rem; }
 .gen-card .spec { margin: .2rem 0; font-size: .9rem; }
 .gen-card .spec.muted { color: var(--muted); }

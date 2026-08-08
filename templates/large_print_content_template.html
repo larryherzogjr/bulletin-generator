@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: 8.5in 11in; margin: 0.52in 0.58in 0.54in; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
+    font-size: calc(16pt * {{ scale }});
+    line-height: 1.19;
+    color: #000;
+  }
+  .section { margin: 0 0 calc(14pt * {{ scale }}); }
+  .heading {
+    margin: 0 0 calc(3pt * {{ scale }});
+    font-size: 1em;
+    line-height: 1.12;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  .text { white-space: pre-line; }
+  .response {
+    margin: calc(18pt * {{ scale }}) 0;
+    text-align: center;
+    font-style: italic;
+    font-weight: 700;
+    white-space: pre-line;
+    break-inside: avoid;
+  }
+  .creed .text { text-align: left; }
+  .closing-response { margin-bottom: 0; }
+</style>
+</head>
+<body>
+{% macro hymn_heading(fallback, hymn) -%}
+  {% if hymn.grace.num %}Hymn #{{ hymn.grace.num }}{% else %}{{ fallback }}{% endif %}
+  {% if hymn.grace.title %}&nbsp;&nbsp;&ldquo;{{ hymn.grace.title }}&rdquo;{% endif %}
+{%- endmacro %}
+{% macro lesson_heading(label, lesson) -%}
+  {{ label }}{% if lesson %}:&nbsp; {{ lesson[0] }}{% endif %}
+{%- endmacro %}
+
+<section class="section">
+  <h1 class="heading">Call to Worship{% if w.call_to_worship %}: {{ w.call_to_worship }}{% endif %}</h1>
+  <div class="text">{{ lp.call_to_worship_text }}</div>
+</section>
+
+<section class="section">
+  <h1 class="heading">{{ hymn_heading("First Hymn", w.opening_hymn) }}</h1>
+  <div class="text">{{ lp.opening_hymn_text }}</div>
+</section>
+
+{% if responses.kyrie %}<div class="response">{{ responses.kyrie }}</div>{% endif %}
+
+<section class="section">
+  <h1 class="heading">{{ lesson_heading(lp.first_lesson_label, lessons[0] if lessons|length > 0 else none) }}</h1>
+  <div class="text">{{ lp.first_lesson_text }}</div>
+</section>
+
+<section class="section">
+  <h1 class="heading">{{ lesson_heading(lp.second_lesson_label, lessons[1] if lessons|length > 1 else none) }}</h1>
+  <div class="text">{{ lp.second_lesson_text }}</div>
+</section>
+
+{% if responses.gospel %}<div class="response">{{ responses.gospel }}</div>{% endif %}
+
+{% if w.confession_of_faith %}
+<section class="section creed">
+  <h1 class="heading">Confession of Faith: {{ w.confession_of_faith }}</h1>
+  <div class="text">{{ creed_text }}</div>
+</section>
+{% endif %}
+
+{% if responses.gloria_patri %}<div class="response">{{ responses.gloria_patri }}</div>{% endif %}
+
+<section class="section">
+  <h1 class="heading">{{ hymn_heading("Second Hymn", w.sermon_hymn) }}</h1>
+  <div class="text">{{ lp.sermon_hymn_text }}</div>
+</section>
+
+<section class="section">
+  <h1 class="heading">{{ hymn_heading("Third Hymn", w.closing_hymn) }}</h1>
+  <div class="text">{{ lp.closing_hymn_text }}</div>
+</section>
+
+{% if responses.doxology %}<div class="response closing-response">{{ responses.doxology }}</div>{% endif %}
+</body>
+</html>

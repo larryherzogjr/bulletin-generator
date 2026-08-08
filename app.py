@@ -8,17 +8,18 @@ Routes
   POST /weeks/<id>/delete     delete a week                  -> redirect to index
   GET  /weeks/<id>/edit       the sectioned edit form
   POST /weeks/<id>            save the form (JSON body)      -> JSON {ok, id}
-  GET  /weeks/<id>/generate   the download screen (two PDFs + print reminders)
+  GET  /weeks/<id>/generate   the download screen (three PDFs + print reminders)
   GET  /weeks/<id>/bulletin.pdf   [?dl=1 -> attachment]
   GET  /weeks/<id>/insert.pdf     [?dl=1 -> attachment]
+  GET  /weeks/<id>/large-print.pdf [?dl=1 -> attachment]
 
 The form posts the whole blob as JSON (built client-side by form.js), which
 keeps deeply-nested, variable-length structures — events, lessons,
 announcements — straightforward versus flat form-encoded names. The server
 normalizes defensively (schema.normalize_blob) before persisting.
 
-Download policy: the secretary downloads the two PDFs separately (no
-bundle — confirmed with the user, since they print on different paper/settings).
+Download policy: the secretary downloads the three PDFs separately (no
+bundle, since they print on different paper/settings).
 Plain PDF routes render inline for quick preview; add ``?dl=1`` to force a
 download with a friendly, week-stamped filename.
 """
@@ -35,7 +36,12 @@ from flask import (
 
 import db
 from schema import CREEDS, SchemaVersionError, blank_blob, normalize_blob
-from render import PDFLayoutError, render_bulletin_pdf, render_insert_pdf
+from render import (
+    PDFLayoutError,
+    render_bulletin_pdf,
+    render_insert_pdf,
+    render_large_print_pdf,
+)
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = int(
@@ -294,6 +300,18 @@ def insert_pdf(week_id: int):
         conn.close()
     pdf = render_insert_pdf(week["data"]["insert"])
     return _pdf_response(pdf, "insert", week["label"])
+
+
+@app.route("/weeks/<int:week_id>/large-print.pdf")
+def large_print_pdf(week_id: int):
+    conn = db.get_connection()
+    try:
+        week = _get_week_or_404(conn, week_id)
+    finally:
+        conn.close()
+    d = week["data"]
+    pdf = render_large_print_pdf(d["weekly"], d["standing"], d["insert"])
+    return _pdf_response(pdf, "large-print-booklet", week["label"])
 
 
 if __name__ == "__main__":

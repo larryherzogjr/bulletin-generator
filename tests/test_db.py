@@ -3,6 +3,7 @@ import stat
 
 import db
 import manage
+from schema import CURRENT_SCHEMA_VERSION
 
 
 def test_crud_clone_and_snapshot_independence(tmp_path, sample_blob):
@@ -69,7 +70,7 @@ def test_migrate_command_backs_up_and_persists_current_version(tmp_path, monkeyp
 
         assert manage.cmd_migrate(conn, []) == 0
         migrated = db.get_week(conn, week_id)["data"]
-        assert migrated["schema_version"] == 1
+        assert migrated["schema_version"] == CURRENT_SCHEMA_VERSION
         assert migrated["weekly"]["opening_hymn"]["grace"]["title"] == "Old"
     finally:
         conn.close()

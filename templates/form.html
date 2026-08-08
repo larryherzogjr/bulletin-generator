@@ -183,6 +183,62 @@
       <button type="button" class="btn small add-row" data-target="weekly.scripture_lessons">+ Add lesson</button>
     </section>
 
+    <!-- ===================== LARGE PRINT ===================== -->
+    <section class="card">
+      <h2>Large-print booklet content</h2>
+      <p class="section-note">
+        Paste the complete spoken and sung text here. The booklet uses the Psalm,
+        lesson references, selected creed, and Grace hymn headings entered above.
+      </p>
+
+      <label>Call to Worship (Psalm) - full text
+        <textarea data-key="weekly.large_print.call_to_worship_text" rows="8">{{ data.weekly.large_print.call_to_worship_text }}</textarea>
+      </label>
+
+      <label>First hymn - verses to print
+        <textarea data-key="weekly.large_print.opening_hymn_text" rows="10">{{ data.weekly.large_print.opening_hymn_text }}</textarea>
+      </label>
+
+      <div class="grid two">
+        <label>First lesson label
+          <input type="text" data-key="weekly.large_print.first_lesson_label" value="{{ data.weekly.large_print.first_lesson_label }}">
+        </label>
+        <label>Second lesson label
+          <input type="text" data-key="weekly.large_print.second_lesson_label" value="{{ data.weekly.large_print.second_lesson_label }}">
+        </label>
+      </div>
+      <label>First scripture lesson - full text
+        <textarea data-key="weekly.large_print.first_lesson_text" rows="10">{{ data.weekly.large_print.first_lesson_text }}</textarea>
+      </label>
+      <label>Second scripture lesson - full text
+        <textarea data-key="weekly.large_print.second_lesson_text" rows="10">{{ data.weekly.large_print.second_lesson_text }}</textarea>
+      </label>
+
+      <label>Second hymn - verses to print
+        <textarea data-key="weekly.large_print.sermon_hymn_text" rows="10">{{ data.weekly.large_print.sermon_hymn_text }}</textarea>
+      </label>
+      <label>Third hymn - verses to print
+        <textarea data-key="weekly.large_print.closing_hymn_text" rows="10">{{ data.weekly.large_print.closing_hymn_text }}</textarea>
+      </label>
+
+      <details class="large-print-standing">
+        <summary><strong>Responses and creed wording</strong> <span class="hint">standing text - review once, then clone week to week</span></summary>
+        <div class="subhead">Responses</div>
+        {% for key, label in [("kyrie", "After the first hymn"), ("gospel", "After the second lesson"), ("gloria_patri", "After the creed"), ("doxology", "After the third hymn")] %}
+        <label>{{ label }}
+          <textarea data-key="standing.large_print_responses.{{ key }}" rows="5">{{ data.standing.large_print_responses[key] }}</textarea>
+        </label>
+        {% endfor %}
+
+        <div class="subhead">Creed wording</div>
+        {% for key, label in [("apostles", "Apostles' Creed"), ("nicene", "Nicene Creed"), ("athanasian", "Athanasian Creed")] %}
+        <label>{{ label }}
+          <textarea data-key="standing.creed_texts.{{ key }}" rows="{% if key == 'athanasian' %}18{% else %}10{% endif %}">{{ data.standing.creed_texts[key] }}</textarea>
+        </label>
+        {% endfor %}
+      </details>
+    </section>
+
     <!-- ===================== EVENTS ===================== -->
     <section class="card">
       <h2>Coming Events</h2>

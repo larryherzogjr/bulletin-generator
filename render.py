@@ -17,11 +17,17 @@ the documented inline formatting without allowing arbitrary markup.
 """
 
 import re
+from copy import copy
+from io import BytesIO
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
+from pypdf import PdfReader, PdfWriter, PageObject, Transformation
+from pypdf.generic import RectangleObject
 from weasyprint import HTML
+
+from schema import CREED_KEYS
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -90,6 +96,17 @@ _PAGE_HEIGHT = 8.5 * 96
 _BULLETIN_WIDTH = 11 * 96
 _INSERT_WIDTH = 11 * 96
 
+# PDF points used by the imposed large-print booklet. Its four physical PDF
+# pages are 17 x 11 inches; each contains two 8.5 x 11 logical pages.
+_LETTER_WIDTH_PT = 8.5 * 72
+_LETTER_HEIGHT_PT = 11 * 72
+_TABLOID_WIDTH_PT = 17 * 72
+_TABLOID_HEIGHT_PT = 11 * 72
+
+_LARGE_PRINT_MIN_SCALE = 0.80   # 12.8pt expanded-content body
+_LARGE_PRINT_MAX_SCALE = 1.25   # 20pt expanded-content body
+_LARGE_PRINT_SCALE_STEP = 0.025
+
 
 class PDFLayoutError(RuntimeError):
     """Raised when content cannot satisfy the fixed print layout contract."""
@@ -113,6 +130,26 @@ def render_bulletin_html(weekly: dict, standing: dict, scale: float = 1.0) -> st
 def render_insert_html(insert: dict) -> str:
     """Render both half-sheet insert sides on one landscape letter sheet."""
     return _env.get_template("insert_template.html").render(i=insert)
+
+
+def render_large_print_content_html(
+    weekly: dict, standing: dict, scale: float = 1.0
+) -> str:
+    """Render the full-text worship material in normal reading order.
+
+    WeasyPrint paginates this portrait-letter stream naturally. The resulting
+    pages become logical booklet pages 3-6 before the final imposition step.
+    """
+    creed_key = CREED_KEYS.get(weekly.get("confession_of_faith", ""))
+    creed_text = standing.get("creed_texts", {}).get(creed_key, "") if creed_key else ""
+    return _env.get_template("large_print_content_template.html").render(
+        w=weekly,
+        lp=weekly.get("large_print", {}),
+        lessons=weekly.get("scripture_lessons", []),
+        responses=standing.get("large_print_responses", {}),
+        creed_text=creed_text,
+        scale=scale,
+    )
 
 
 def _iter_boxes(box):
@@ -218,3 +255,159 @@ def render_insert_pdf(insert: dict) -> bytes:
             "or bold notes and try again.",
         )
     return document.write_pdf()
+
+
+def _required_large_print_text(weekly: dict, standing: dict) -> None:
+    """Fail with an editor-oriented message instead of making empty panels."""
+    lp = weekly.get("large_print", {})
+    fields = (
+        ("call_to_worship_text", "Call to Worship"),
+        ("opening_hymn_text", "first hymn"),
+        ("first_lesson_text", "first scripture lesson"),
+        ("second_lesson_text", "second scripture lesson"),
+        ("sermon_hymn_text", "second hymn"),
+        ("closing_hymn_text", "third hymn"),
+    )
+    missing = [label for key, label in fields if not str(lp.get(key, "")).strip()]
+    creed = weekly.get("confession_of_faith", "")
+    creed_key = CREED_KEYS.get(creed)
+    if creed_key and not str(standing.get("creed_texts", {}).get(creed_key, "")).strip():
+        missing.append(creed)
+    if missing:
+        raise PDFLayoutError(
+            "large-print booklet",
+            "Add the full large-print text for " + ", ".join(missing) + " and try again.",
+        )
+
+
+def _render_large_print_content(weekly: dict, standing: dict):
+    """Choose the largest expanded-content type that stays within four pages."""
+    def render_at(scale):
+        return HTML(
+            string=render_large_print_content_html(weekly, standing, scale),
+            base_url=str(BASE_DIR),
+        ).render()
+
+    scale = 1.0
+    document = render_at(scale)
+
+    while len(document.pages) > 4 and scale > _LARGE_PRINT_MIN_SCALE:
+        scale = max(
+            _LARGE_PRINT_MIN_SCALE,
+            round(scale - _LARGE_PRINT_SCALE_STEP, 3),
+        )
+        document = render_at(scale)
+
+    if len(document.pages) > 4:
+        raise PDFLayoutError(
+            "large-print booklet",
+            "The Psalm, hymns, scripture lessons, and creed are too long to fit "
+            "in the four large-print reading pages at the minimum legible size. "
+            "Shorten the included hymn verses or other full text and try again.",
+        )
+
+    # Short readings can leave usable room. Increase only the full-text portion
+    # until the next step would exceed the four allocated logical pages.
+    while scale < _LARGE_PRINT_MAX_SCALE:
+        candidate_scale = min(
+            _LARGE_PRINT_MAX_SCALE,
+            round(scale + _LARGE_PRINT_SCALE_STEP, 3),
+        )
+        candidate = render_at(candidate_scale)
+        if len(candidate.pages) > 4:
+            break
+        scale, document = candidate_scale, candidate
+
+    return document
+
+
+def _panel_to_letter(source_page, panel_index: int) -> PageObject:
+    """Enlarge one 5.5 x 8.5 source panel onto a portrait Letter page."""
+    source_width = float(source_page.mediabox.width)
+    source_height = float(source_page.mediabox.height)
+    panel_width = source_width / 2
+    x0 = panel_index * panel_width
+    panel = copy(source_page)
+    panel.cropbox = RectangleObject((x0, 0, x0 + panel_width, source_height))
+
+    scale = _LETTER_HEIGHT_PT / source_height
+    rendered_width = panel_width * scale
+    left_margin = (_LETTER_WIDTH_PT - rendered_width) / 2
+    transform = Transformation().scale(scale).translate(
+        tx=left_margin - x0 * scale,
+        ty=0,
+    )
+    logical = PageObject.create_blank_page(
+        width=_LETTER_WIDTH_PT, height=_LETTER_HEIGHT_PT
+    )
+    logical.merge_transformed_page(panel, transform, expand=False)
+    return logical
+
+
+def _logical_fixed_pages(bulletin_pdf: bytes, insert_pdf: bytes) -> tuple:
+    """Return logical pages 1, 2, 7, and 8 from the existing two outputs."""
+    bulletin_page = PdfReader(BytesIO(bulletin_pdf)).pages[0]
+    insert_page = PdfReader(BytesIO(insert_pdf)).pages[0]
+    return (
+        _panel_to_letter(bulletin_page, 0),  # 1: Order of Service
+        _panel_to_letter(bulletin_page, 1),  # 2: Coming Events
+        _panel_to_letter(insert_page, 0),    # 7: Insert/announcements
+        _panel_to_letter(insert_page, 1),    # 8: Message & Notes
+    )
+
+
+def _impose_large_print_pages(logical_pages: list[PageObject]) -> bytes:
+    """Impose eight portrait logical pages on four duplex 17 x 11 sides.
+
+    The side pairs are 8|1, 2|7, 6|3, and 4|5. Printing in order, duplex with
+    short-edge binding, then nesting the second sheet inside the first produces
+    normal reading order after the two sheets are folded together.
+    """
+    if len(logical_pages) != 8:  # defensive: this is the physical print contract
+        raise ValueError("large-print imposition requires exactly eight logical pages")
+    pairs = ((7, 0), (1, 6), (5, 2), (3, 4))
+    writer = PdfWriter()
+    for left_index, right_index in pairs:
+        sheet = PageObject.create_blank_page(
+            width=_TABLOID_WIDTH_PT, height=_TABLOID_HEIGHT_PT
+        )
+        sheet.merge_page(logical_pages[left_index])
+        sheet.merge_translated_page(
+            logical_pages[right_index], tx=_LETTER_WIDTH_PT, ty=0, expand=False
+        )
+        writer.add_page(sheet)
+    stream = BytesIO()
+    writer.write(stream)
+    return stream.getvalue()
+
+
+def render_large_print_pdf(weekly: dict, standing: dict, insert: dict) -> bytes:
+    """Four-page, 17 x 11 landscape, duplex-ready large-print booklet."""
+    _required_large_print_text(weekly, standing)
+
+    # Reusing the verified existing outputs keeps every bulletin and insert
+    # field in one source of truth. Each half is enlarged from 5.5 x 8.5 to a
+    # portrait Letter logical page before booklet imposition.
+    bulletin_pdf = render_bulletin_pdf(weekly, standing)
+    insert_pdf = render_insert_pdf(insert)
+    order, events, announcements, notes = _logical_fixed_pages(
+        bulletin_pdf, insert_pdf
+    )
+
+    content_pdf = _render_large_print_content(weekly, standing).write_pdf()
+    content_pages = list(PdfReader(BytesIO(content_pdf)).pages)
+    while len(content_pages) < 4:
+        content_pages.append(
+            PageObject.create_blank_page(
+                width=_LETTER_WIDTH_PT, height=_LETTER_HEIGHT_PT
+            )
+        )
+
+    logical_pages = [
+        order,
+        events,
+        *content_pages,
+        announcements,
+        notes,
+    ]
+    return _impose_large_print_pages(logical_pages)

@@ -13,6 +13,8 @@ from render import (
     render_bulletin_pdf,
     render_insert_html,
     render_insert_pdf,
+    render_large_print_content_html,
+    render_large_print_pdf,
 )
 
 
@@ -63,6 +65,37 @@ def test_sample_pdfs_have_exact_print_geometry_and_text(sample_blob):
     assert "Message & Notes" in insert_text
     assert any("Liberation-Sans" in name for name in _font_names(bulletin))
     assert any("Liberation-Serif" in name for name in _font_names(insert))
+
+
+def test_large_print_booklet_has_tabloid_imposition_and_full_text(sample_blob):
+    booklet = render_large_print_pdf(
+        sample_blob["weekly"], sample_blob["standing"], sample_blob["insert"]
+    )
+
+    assert _page_sizes(booklet) == [(1224.0, 792.0)] * 4
+    text = "\n".join(
+        page.extract_text() for page in PdfReader(BytesIO(booklet)).pages
+    )
+    assert "Message & Notes" in text
+    assert "SUNDAY MORNING WORSHIP" in text
+    assert "COMING EVENTS AT GRACE" in text
+    assert "Call to Worship: Psalm 8" in text
+    assert "O God the Father in heaven" in text
+    assert "Confession of Faith: Nicene Creed" in text
+    assert "Glory be to the Father" in text
+    assert "Praise God from Whom all blessings flow" in text
+
+
+def test_large_print_uses_the_selected_editable_creed(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    standing = deepcopy(sample_blob["standing"])
+    weekly["confession_of_faith"] = "Apostles' Creed"
+    standing["creed_texts"]["apostles"] = "CUSTOM APOSTLES WORDING"
+
+    html = render_large_print_content_html(weekly, standing)
+
+    assert "Confession of Faith: Apostles' Creed" in html
+    assert "CUSTOM APOSTLES WORDING" in html
 
 
 def test_insert_prayer_box_has_larger_minimum_and_can_grow_to_half_page(sample_blob):
@@ -120,3 +153,15 @@ def test_insert_overflow_fails_closed(sample_blob):
 
     with pytest.raises(PDFLayoutError, match="one 11 x 8.5"):
         render_insert_pdf(insert)
+
+
+def test_large_print_requires_full_text_and_rejects_overflow(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["large_print"]["opening_hymn_text"] = ""
+    with pytest.raises(PDFLayoutError, match="first hymn"):
+        render_large_print_pdf(weekly, sample_blob["standing"], sample_blob["insert"])
+
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["large_print"]["call_to_worship_text"] = "Very long Psalm text. " * 8000
+    with pytest.raises(PDFLayoutError, match="four large-print reading pages"):
+        render_large_print_pdf(weekly, sample_blob["standing"], sample_blob["insert"])

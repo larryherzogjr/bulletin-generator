@@ -38,6 +38,12 @@ def test_full_http_flow_and_download_headers(client, sample_blob):
     assert download.headers["Content-Disposition"].startswith("attachment;")
     assert "first-sunday-may-31-2026" in download.headers["Content-Disposition"]
 
+    large_print = client.get(f"/weeks/{week_id}/large-print.pdf?dl=1")
+    assert large_print.status_code == 200
+    assert large_print.content_type == "application/pdf"
+    assert large_print.headers["Content-Disposition"].startswith("attachment;")
+    assert "large-print-booklet-first-sunday" in large_print.headers["Content-Disposition"]
+
     assert client.get("/weeks/999/edit").status_code == 404
 
 
