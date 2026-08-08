@@ -98,6 +98,32 @@ def test_large_print_uses_the_selected_editable_creed(sample_blob):
     assert "CUSTOM APOSTLES WORDING" in html
 
 
+def test_large_print_uniformly_reduces_below_the_old_floor_until_content_fits(
+    sample_blob,
+):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["large_print"]["call_to_worship_text"] += (
+        " Additional full-text sentence for fitting." * 300
+        + " FINAL DENSE CONTENT"
+    )
+    at_old_floor = HTML(
+        string=render_large_print_content_html(
+            weekly, sample_blob["standing"], scale=0.80
+        ),
+        base_url=str(BASE_DIR),
+    ).render()
+    assert len(at_old_floor.pages) > 4
+
+    booklet = render_large_print_pdf(
+        weekly, sample_blob["standing"], sample_blob["insert"]
+    )
+
+    assert _page_sizes(booklet) == [(1224.0, 792.0)] * 4
+    assert "FINAL DENSE CONTENT" in "\n".join(
+        page.extract_text() for page in PdfReader(BytesIO(booklet)).pages
+    )
+
+
 def test_insert_prayer_box_has_larger_minimum_and_can_grow_to_half_page(sample_blob):
     insert = deepcopy(sample_blob["insert"])
     minimum_height = _outer_height_for_class(render_insert_html(insert), "praybox")
@@ -163,5 +189,5 @@ def test_large_print_requires_full_text_and_rejects_overflow(sample_blob):
 
     weekly = deepcopy(sample_blob["weekly"])
     weekly["large_print"]["call_to_worship_text"] = "Very long Psalm text. " * 8000
-    with pytest.raises(PDFLayoutError, match="four large-print reading pages"):
+    with pytest.raises(PDFLayoutError, match="four reading pages"):
         render_large_print_pdf(weekly, sample_blob["standing"], sample_blob["insert"])

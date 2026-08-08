@@ -36,8 +36,10 @@ numbers, events split into two sections).
 - Logical pages 3-6 contain, in reading order: Call to Worship Psalm; first
   hymn; response; first and second lessons; response; selected creed; response;
   second hymn; third hymn; and doxology.
-- The expanded worship text starts at 16pt and adjusts within a 12.8-20pt
-  range to use no more than its four allocated pages.
+- The expanded worship text starts at 16pt, grows as large as 20pt when space
+  permits, and reduces uniformly across all four reading pages until every
+  Psalm, hymn, lesson, response, and creed fits. A 4pt emergency floor exists
+  only to reject pathological input rather than loop indefinitely.
 
 ## Fonts
 Originals were **Arial** (body/sans) and **Times New Roman** (the prayer box + notes

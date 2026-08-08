@@ -103,7 +103,12 @@ _LETTER_HEIGHT_PT = 11 * 72
 _TABLOID_WIDTH_PT = 17 * 72
 _TABLOID_HEIGHT_PT = 11 * 72
 
-_LARGE_PRINT_MIN_SCALE = 0.80   # 12.8pt expanded-content body
+# Keep every full-text page at one consistent scale. Unlike the original
+# bulletin/insert panels, completeness is more important here than enforcing a
+# conventional large-print floor, so the renderer may continue below 12.8pt
+# when a long Psalm, set of readings, or creed requires it. The emergency floor
+# only prevents pathological input from causing an unbounded render loop.
+_LARGE_PRINT_MIN_SCALE = 0.25   # 4pt emergency floor for pathological input
 _LARGE_PRINT_MAX_SCALE = 1.25   # 20pt expanded-content body
 _LARGE_PRINT_SCALE_STEP = 0.025
 
@@ -281,7 +286,7 @@ def _required_large_print_text(weekly: dict, standing: dict) -> None:
 
 
 def _render_large_print_content(weekly: dict, standing: dict):
-    """Choose the largest expanded-content type that stays within four pages."""
+    """Choose one uniform full-text scale that stays within four pages."""
     def render_at(scale):
         return HTML(
             string=render_large_print_content_html(weekly, standing, scale),
@@ -291,20 +296,34 @@ def _render_large_print_content(weekly: dict, standing: dict):
     scale = 1.0
     document = render_at(scale)
 
-    while len(document.pages) > 4 and scale > _LARGE_PRINT_MIN_SCALE:
-        scale = max(
-            _LARGE_PRINT_MIN_SCALE,
-            round(scale - _LARGE_PRINT_SCALE_STEP, 3),
-        )
-        document = render_at(scale)
-
     if len(document.pages) > 4:
-        raise PDFLayoutError(
-            "large-print booklet",
-            "The Psalm, hymns, scripture lessons, and creed are too long to fit "
-            "in the four large-print reading pages at the minimum legible size. "
-            "Shorten the included hymn verses or other full text and try again.",
-        )
+        # Back off quickly so a very long week does not require dozens of
+        # expensive full-document renders. Once a fitting lower bound is found,
+        # bisect back toward the last overflowing size to retain the largest
+        # uniform type that fits.
+        overflow_scale = scale
+        while len(document.pages) > 4 and scale > _LARGE_PRINT_MIN_SCALE:
+            overflow_scale = scale
+            scale = max(_LARGE_PRINT_MIN_SCALE, round(scale / 2, 3))
+            document = render_at(scale)
+
+        if len(document.pages) > 4:
+            raise PDFLayoutError(
+                "large-print booklet",
+                "The Psalm, hymns, scripture lessons, and creed are too long to fit "
+                "in the four reading pages even after reducing the full-text font "
+                "across the entire inner sheet. Shorten the included text and try again.",
+            )
+
+        fitting_scale = scale
+        while overflow_scale - fitting_scale > _LARGE_PRINT_SCALE_STEP:
+            candidate_scale = round((fitting_scale + overflow_scale) / 2, 3)
+            candidate = render_at(candidate_scale)
+            if len(candidate.pages) <= 4:
+                fitting_scale, document = candidate_scale, candidate
+            else:
+                overflow_scale = candidate_scale
+        scale = fitting_scale
 
     # Short readings can leave usable room. Increase only the full-text portion
     # until the next step would exceed the four allocated logical pages.

@@ -62,9 +62,11 @@ The print contracts are strict:
 - large-print booklet: exactly four 17 x 11 inch landscape pages, imposed as
   two duplex Tabloid sheets in `8|1, 2|7, 6|3, 4|5` logical-page order.
 
-The bulletin and large-print text shrink only to their minimum legible scales.
-If any document still does not fit, generation returns an actionable layout
-error rather than a clipped or extra-page PDF.
+The bulletin retains its minimum legible scale. The large-print booklet applies
+one uniform font scale to all full-text worship content and keeps reducing it as
+needed to preserve every Psalm, hymn, lesson, response, and creed within the
+four allocated reading pages. Pathological content still returns an actionable
+layout error rather than a clipped or extra-page PDF.
 
 ## Run locally
 
