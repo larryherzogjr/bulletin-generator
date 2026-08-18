@@ -132,6 +132,13 @@ body.reordering { cursor: grabbing; user-select: none; }
 .hymn-label { flex: 0 0 4.5rem; font-weight: 600; font-size: .88rem; }
 .hymn-row input { flex: 1; }
 .hymn-row input[data-key$=".title"] { flex: 2; }
+.hymn-row .hymn-load { flex: 0 0 auto; min-width: 6.5rem; }
+.hymn-lookup-status {
+  min-height: 1.1rem; margin: -.3rem 0 .45rem 4.95rem;
+  color: var(--muted); font-size: .78rem;
+}
+.hymn-lookup-status.error { color: var(--danger); }
+.hymn-lookup-status.loaded { color: var(--ok); }
 
 /* events */
 .parish { margin-bottom: 1.2rem; }
@@ -200,4 +207,8 @@ details[open] summary::before { content: "▾ "; }
   .grid.two, .grid.three { grid-template-columns: 1fr; }
   .gen-grid { grid-template-columns: 1fr; }
   .duplex-note { display: none; }
+  .hymn-row { flex-wrap: wrap; }
+  .hymn-row .hymn-label { flex-basis: 100%; }
+  .hymn-row input { min-width: 7rem; }
+  .hymn-lookup-status { margin-left: 0; }
 }

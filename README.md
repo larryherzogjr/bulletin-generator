@@ -78,9 +78,24 @@ layout error rather than a clipped or extra-page PDF.
 The home page lists saved weeks. Clone the most recent comparable week, edit
 the changed sections, save, and open Generate. The editor waits for an active
 save before navigating to the generated files and warns while changes or a
-save are pending. Print the large-print booklet double-sided on two Tabloid
+save are pending. Entering a Grace hymn number loads all verses from the
+Ambassador hymn library into the corresponding editable large-print field.
+Untouched library text is replaced automatically when a cloned week's hymn
+number changes; manually edited verse selections require an explicit replace.
+Print the large-print booklet double-sided on two Tabloid
 sheets, flipping on the short edge; nest the second sheet inside the first
 before folding.
+
+The checked-in browser library is generated from the source RTF rather than
+parsed at application runtime:
+
+```sh
+python3 scripts/import_ambassador_hymns.py source.rtf static/data/ambassador_hymns.json
+```
+
+RTF conversion uses macOS `textutil`; the importer also accepts a previously
+converted UTF-8 text file. It validates all 634 positions and repairs the known
+combined source block for hymns 254 and 255.
 
 ## Database operations
 

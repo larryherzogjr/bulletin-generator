@@ -15,7 +15,8 @@
   </header>
 
   <form id="week-form" data-week-id="{{ week.id }}"
-        data-save-url="{{ url_for('save_week', week_id=week.id) }}">
+        data-save-url="{{ url_for('save_week', week_id=week.id) }}"
+        data-hymn-library-url="{{ url_for('static', filename='data/ambassador_hymns.json') }}">
 
     <div class="formatting-note">
       <strong>Formatting:</strong> in any field you can use
@@ -117,13 +118,20 @@
 
     <!-- ===================== HYMNS ===================== -->
     <section class="card">
-      <h2>Grace Hymns</h2>
-      {% for slot, label in [("opening_hymn","Opening"),("sermon_hymn","Sermon"),("closing_hymn","Closing")] %}
-      <div class="hymn-row">
+      <h2>Grace Hymns <span class="hint">Ambassador hymn numbers load the large-print lyrics automatically</span></h2>
+      {% for slot, label, text_key in [("opening_hymn","Opening","opening_hymn_text"),("sermon_hymn","Sermon","sermon_hymn_text"),("closing_hymn","Closing","closing_hymn_text")] %}
+      <div class="hymn-row" data-hymn-row>
         <span class="hymn-label">{{ label }}</span>
-        <input type="text" data-key="weekly.{{ slot }}.grace.num" placeholder="Grace #" value="{{ data.weekly[slot].grace.num }}">
+        <input type="text" inputmode="numeric" pattern="[0-9]*"
+               data-key="weekly.{{ slot }}.grace.num"
+               data-hymn-number
+               data-hymn-target="weekly.large_print.{{ text_key }}"
+               aria-describedby="hymn-status-{{ slot }}"
+               placeholder="Grace #" value="{{ data.weekly[slot].grace.num }}">
         <input type="text" data-key="weekly.{{ slot }}.grace.title" placeholder="Title" value="{{ data.weekly[slot].grace.title }}">
+        <button type="button" class="btn small hymn-load" data-hymn-load disabled>Load lyrics</button>
       </div>
+      <div class="hymn-lookup-status" id="hymn-status-{{ slot }}" data-hymn-status aria-live="polite"></div>
       {% endfor %}
     </section>
 
@@ -187,8 +195,9 @@
     <section class="card">
       <h2>Large-print booklet content</h2>
       <p class="section-note">
-        Paste the complete spoken and sung text here. The booklet uses the Psalm,
-        lesson references, selected creed, and Grace hymn headings entered above.
+        Entering a Grace hymn number loads all verses from the Ambassador library.
+        The loaded text remains editable so you can choose which verses to print.
+        Paste the complete Psalm and lesson text here as before.
       </p>
 
       <label>Call to Worship (Psalm) - full text

@@ -91,6 +91,13 @@ Hymnal note: Grace uses *Ambassador*; Zion uses *Concordia* plus a "Green" hymna
 (numbers tagged "(Green)"). Memory verse is shared between bulletin and insert in a
 given week — collect once, render in both.
 
+Grace hymn numbers 1-634 load the corresponding full text from a global,
+generated Ambassador library into the existing large-print hymn fields. The
+copied weekly text remains editable for verse selection. Zion numbers never
+query that library. Changing a cloned week's number may replace text that still
+matches the prior library entry, but must not silently overwrite manually
+edited lyrics.
+
 ## Completed product decisions
 
 - PDFs are downloaded separately because they use different paper and printer

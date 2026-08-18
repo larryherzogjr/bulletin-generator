@@ -1,5 +1,6 @@
 from copy import deepcopy
 from io import BytesIO
+import json
 
 import pytest
 from pypdf import PdfReader
@@ -96,6 +97,20 @@ def test_large_print_uses_the_selected_editable_creed(sample_blob):
 
     assert "Confession of Faith: Apostles' Creed" in html
     assert "CUSTOM APOSTLES WORDING" in html
+
+
+def test_large_print_renders_text_from_the_ambassador_library(sample_blob):
+    library_path = BASE_DIR / "static" / "data" / "ambassador_hymns.json"
+    library = json.loads(library_path.read_text(encoding="utf-8"))
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["opening_hymn"]["grace"]["num"] = "254"
+    weekly["large_print"]["opening_hymn_text"] = library["254"]
+
+    html = render_large_print_content_html(weekly, sample_blob["standing"])
+
+    assert "Hymn #254" in html
+    assert "Abide in grace, Lord Jesus" in html
+    assert "Print Thine image" not in html
 
 
 def test_large_print_uniformly_reduces_below_the_old_floor_until_content_fits(

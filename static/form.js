@@ -19,6 +19,9 @@
   let revision = 0;
   let savedRevision = 0;
   let savePromise = null;
+  let hymnLibraryPromise = null;
+  const pendingHymnLoads = new Set();
+  const scheduledHymnControls = new Set();
 
   // ---- helpers ----------------------------------------------------------
   function setPath(obj, path, value) {
@@ -44,6 +47,213 @@
   }
 
   form.addEventListener("input", markDirty);
+
+  // ---- Ambassador hymn lookup -------------------------------------------
+  // The global library stays outside each weekly JSON snapshot. Only the
+  // three selected texts are copied into the existing large-print fields.
+  function normalizedHymnNumber(value) {
+    const raw = String(value || "").trim();
+    if (!/^\d+$/.test(raw)) return null;
+    const number = Number(raw);
+    return Number.isInteger(number) && number >= 1 && number <= 634
+      ? String(number)
+      : null;
+  }
+
+  function loadHymnLibrary() {
+    if (!hymnLibraryPromise) {
+      hymnLibraryPromise = fetch(form.dataset.hymnLibraryUrl).then(async function (res) {
+        if (!res.ok) throw new Error("hymn library failed to load (HTTP " + res.status + ")");
+        const library = await res.json();
+        if (!library || typeof library !== "object" || !library["1"] || !library["634"]) {
+          throw new Error("hymn library is incomplete");
+        }
+        return library;
+      });
+      // Permit a deliberate retry from the Load lyrics button after a
+      // temporary static-file/network failure.
+      hymnLibraryPromise.catch(function () {
+        hymnLibraryPromise = null;
+      });
+    }
+    return hymnLibraryPromise;
+  }
+
+  function setHymnStatus(control, message, className) {
+    control.status.textContent = message;
+    control.status.className = "hymn-lookup-status" + (className ? " " + className : "");
+  }
+
+  function setHymnButton(control, label, disabled) {
+    control.button.textContent = label;
+    control.button.disabled = disabled;
+  }
+
+  function trackHymnLoad(promise) {
+    pendingHymnLoads.add(promise);
+    promise.then(
+      function () { pendingHymnLoads.delete(promise); },
+      function () { pendingHymnLoads.delete(promise); }
+    );
+    return promise;
+  }
+
+  function clearScheduledHymn(control) {
+    if (control.lookupTimer !== null) {
+      clearTimeout(control.lookupTimer);
+      control.lookupTimer = null;
+    }
+    scheduledHymnControls.delete(control);
+  }
+
+  function runAutomaticHymnLookup(control) {
+    clearScheduledHymn(control);
+    const nextNumber = normalizedHymnNumber(control.input.value);
+    const previousNumber = control.currentNumber;
+    if (nextNumber) control.currentNumber = nextNumber;
+    return trackHymnLoad(populateHymn(control, previousNumber, false));
+  }
+
+  function scheduleAutomaticHymnLookup(control) {
+    clearScheduledHymn(control);
+    scheduledHymnControls.add(control);
+    control.lookupTimer = setTimeout(function () {
+      runAutomaticHymnLookup(control);
+    }, 300);
+  }
+
+  async function populateHymn(control, previousNumber, force) {
+    const hymnNumber = normalizedHymnNumber(control.input.value);
+    if (!hymnNumber) {
+      const hasValue = String(control.input.value || "").trim();
+      setHymnStatus(
+        control,
+        hasValue ? "Enter an Ambassador hymn number from 1 through 634." : "",
+        hasValue ? "error" : ""
+      );
+      setHymnButton(control, "Load lyrics", true);
+      return false;
+    }
+
+    const requestVersion = ++control.requestVersion;
+    setHymnStatus(control, "Loading Ambassador hymn #" + hymnNumber + "…", "");
+    setHymnButton(control, "Loading…", true);
+    try {
+      const library = await loadHymnLibrary();
+      if (
+        requestVersion !== control.requestVersion ||
+        normalizedHymnNumber(control.input.value) !== hymnNumber
+      ) {
+        return false;
+      }
+
+      const newLyrics = library[hymnNumber];
+      if (typeof newLyrics !== "string" || !newLyrics.trim()) {
+        throw new Error("Ambassador hymn #" + hymnNumber + " is unavailable");
+      }
+      const currentLyrics = control.target.value.trim();
+      const previousLyrics = previousNumber ? library[previousNumber] : null;
+      const safeToReplace =
+        force ||
+        !currentLyrics ||
+        (typeof previousLyrics === "string" && currentLyrics === previousLyrics);
+
+      if (!safeToReplace) {
+        setHymnStatus(
+          control,
+          "Existing edited lyrics were kept. Use Replace lyrics to load hymn #" + hymnNumber + ".",
+          ""
+        );
+        setHymnButton(control, "Replace lyrics", false);
+        return false;
+      }
+
+      if (control.target.value !== newLyrics) {
+        control.target.value = newLyrics;
+        // Programmatic value changes do not emit input events themselves. The
+        // event makes the existing dirty/save workflow persist the new text.
+        control.target.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      setHymnStatus(
+        control,
+        "Loaded all verses from Ambassador hymn #" + hymnNumber + ".",
+        "loaded"
+      );
+      setHymnButton(control, "Reload lyrics", false);
+      return true;
+    } catch (err) {
+      if (requestVersion === control.requestVersion) {
+        setHymnStatus(
+          control,
+          "Lyrics could not be loaded; existing text was kept. " + err.message,
+          "error"
+        );
+        setHymnButton(control, "Retry lyrics", false);
+      }
+      return false;
+    }
+  }
+
+  const hymnControls = Array.from(form.querySelectorAll("[data-hymn-number]")).map(
+    function (input) {
+      const row = input.closest("[data-hymn-row]");
+      const target = form.querySelector(
+        '[data-key="' + cssEscape(input.dataset.hymnTarget) + '"]'
+      );
+      const control = {
+        input: input,
+        target: target,
+        button: row.querySelector("[data-hymn-load]"),
+        status: row.nextElementSibling,
+        currentNumber: normalizedHymnNumber(input.value),
+        requestVersion: 0,
+        lookupTimer: null,
+      };
+
+      input.addEventListener("input", function () {
+        const valid = normalizedHymnNumber(input.value);
+        setHymnButton(control, "Load lyrics", !valid);
+        if (valid) {
+          scheduleAutomaticHymnLookup(control);
+        } else {
+          clearScheduledHymn(control);
+          // Prevent an older in-flight lookup from populating after the number
+          // has been cleared or made invalid.
+          control.requestVersion += 1;
+          const hasValue = String(input.value || "").trim();
+          setHymnStatus(
+            control,
+            hasValue ? "Enter an Ambassador hymn number from 1 through 634." : "",
+            hasValue ? "error" : ""
+          );
+        }
+      });
+      input.addEventListener("change", function () {
+        if (control.lookupTimer !== null) runAutomaticHymnLookup(control);
+      });
+      control.button.addEventListener("click", function () {
+        clearScheduledHymn(control);
+        const nextNumber = normalizedHymnNumber(input.value);
+        if (nextNumber) control.currentNumber = nextNumber;
+        trackHymnLoad(populateHymn(control, null, true));
+      });
+
+      setHymnButton(control, "Load lyrics", !control.currentNumber);
+      if (control.currentNumber && !target.value.trim()) {
+        trackHymnLoad(populateHymn(control, control.currentNumber, false));
+      }
+      return control;
+    }
+  );
+
+  // Warm the cache early so a normal number change is effectively immediate.
+  loadHymnLibrary().catch(function () {
+    hymnControls.forEach(function (control) {
+      if (normalizedHymnNumber(control.input.value) && !control.status.textContent) {
+        setHymnStatus(control, "Hymn library unavailable; use Load lyrics to retry.", "error");
+      }
+    });
+  });
 
   // ---- optional sections: reflect enabled state visually -----------------
   function syncOptional(block) {
@@ -430,10 +640,29 @@
     }
   }
 
+  async function waitForHymnLoads() {
+    // A save can occur during the short typing debounce. Flush those lookups
+    // first so the hymn number and populated lyrics are saved atomically.
+    Array.from(scheduledHymnControls).forEach(runAutomaticHymnLookup);
+    while (pendingHymnLoads.size) {
+      await Promise.all(Array.from(pendingHymnLoads));
+    }
+  }
+
+  async function saveAfterHymnLoads() {
+    if (pendingHymnLoads.size || scheduledHymnControls.size) {
+      statusEl.textContent = "Finishing hymn lookup…";
+      statusEl.className = "saving";
+      saveBtn.disabled = true;
+      generateLink.setAttribute("aria-busy", "true");
+    }
+    await waitForHymnLoads();
+    return performSave(revision);
+  }
+
   async function save() {
     if (savePromise) return savePromise;
-    const snapshotRevision = revision;
-    savePromise = performSave(snapshotRevision);
+    savePromise = saveAfterHymnLoads();
     try {
       return await savePromise;
     } finally {
