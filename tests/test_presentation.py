@@ -45,6 +45,30 @@ def _normalized_slide_text(root):
     return " ".join(text.split())
 
 
+def _assert_internal_relationship_targets_exist(archive):
+    members = set(archive.namelist())
+    for member in members:
+        if not member.endswith(".rels"):
+            continue
+        if member == "_rels/.rels":
+            source_dir = ""
+        else:
+            rels_dir, rels_name = posixpath.split(member)
+            source_part = posixpath.join(
+                posixpath.dirname(rels_dir), rels_name[:-5]
+            )
+            source_dir = posixpath.dirname(source_part)
+        root = ET.fromstring(archive.read(member))
+        for relationship in root.findall(f"{{{PKG_REL_NS}}}Relationship"):
+            if relationship.attrib.get("TargetMode") == "External":
+                continue
+            target = relationship.attrib.get("Target", "")
+            resolved = posixpath.normpath(
+                posixpath.join(source_dir, target)
+            ).lstrip("/")
+            assert resolved in members, (member, target, resolved)
+
+
 def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     blob = deepcopy(sample_blob)
     weekly = blob["weekly"]
@@ -55,6 +79,10 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
 
     pptx = render_grace_presentation(blob)
     archive, presentation, parts = _ordered_slides(pptx)
+    for member in archive.namelist():
+        if member.endswith((".xml", ".rels")):
+            ET.fromstring(archive.read(member))
+    _assert_internal_relationship_targets_exist(archive)
     roots = [ET.fromstring(archive.read(part)) for part in parts]
     texts = [_normalized_slide_text(root) for root in roots]
 

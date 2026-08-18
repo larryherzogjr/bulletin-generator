@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import io
 import os
+import posixpath
 import shutil
 import subprocess
 import tempfile
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -22,6 +24,9 @@ TEMPLATES = (
     TEMPLATE_DIR / "normal-apostles-communion.pptx",
     TEMPLATE_DIR / "normal-nicene.pptx",
     TEMPLATE_DIR / "normal-athanasian.pptx",
+)
+PACKAGE_RELATIONSHIP = (
+    "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"
 )
 
 
@@ -95,6 +100,36 @@ def render_grace_presentation(data: dict) -> bytes:
                     raise PresentationGenerationError(
                         "PowerPoint generation produced an incomplete file."
                     )
+                for member in members:
+                    if not member.endswith((".xml", ".rels")):
+                        continue
+                    try:
+                        root = ET.fromstring(archive.read(member))
+                    except ET.ParseError as exc:
+                        raise PresentationGenerationError(
+                            "PowerPoint generation produced malformed XML."
+                        ) from exc
+                    if not member.endswith(".rels"):
+                        continue
+                    if member == "_rels/.rels":
+                        source_dir = ""
+                    else:
+                        rels_dir, rels_name = posixpath.split(member)
+                        source_part = posixpath.join(
+                            posixpath.dirname(rels_dir), rels_name[:-5]
+                        )
+                        source_dir = posixpath.dirname(source_part)
+                    for relationship in root.findall(PACKAGE_RELATIONSHIP):
+                        if relationship.attrib.get("TargetMode") == "External":
+                            continue
+                        target = relationship.attrib.get("Target", "")
+                        resolved = posixpath.normpath(
+                            posixpath.join(source_dir, target)
+                        ).lstrip("/")
+                        if resolved not in members:
+                            raise PresentationGenerationError(
+                                "PowerPoint generation produced an incomplete relationship."
+                            )
         except zipfile.BadZipFile as exc:
             raise PresentationGenerationError(
                 "PowerPoint generation produced an invalid file."
