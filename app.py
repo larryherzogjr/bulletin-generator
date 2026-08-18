@@ -8,10 +8,11 @@ Routes
   POST /weeks/<id>/delete     delete a week                  -> redirect to index
   GET  /weeks/<id>/edit       the sectioned edit form
   POST /weeks/<id>            save the form (JSON body)      -> JSON {ok, id}
-  GET  /weeks/<id>/generate   the download screen (three PDFs + print reminders)
+  GET  /weeks/<id>/generate   the download screen (three PDFs + Grace PowerPoint)
   GET  /weeks/<id>/bulletin.pdf   [?dl=1 -> attachment]
   GET  /weeks/<id>/insert.pdf     [?dl=1 -> attachment]
   GET  /weeks/<id>/large-print.pdf [?dl=1 -> attachment]
+  GET  /weeks/<id>/grace-presentation.pptx
 
 The form posts the whole blob as JSON (built client-side by form.js), which
 keeps deeply-nested, variable-length structures — events, lessons,
@@ -22,6 +23,7 @@ Download policy: the secretary downloads the three PDFs separately (no
 bundle, since they print on different paper/settings).
 Plain PDF routes render inline for quick preview; add ``?dl=1`` to force a
 download with a friendly, week-stamped filename.
+The Grace presentation is always downloaded as an editable PowerPoint file.
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ from flask import (
 )
 
 import db
+from presentation import PresentationGenerationError, render_grace_presentation
 from schema import CREEDS, SchemaVersionError, blank_blob, normalize_blob
 from render import (
     PDFLayoutError,
@@ -105,6 +108,15 @@ def _layout_error(exc: PDFLayoutError):
     ), 422
 
 
+@app.errorhandler(PresentationGenerationError)
+def _presentation_error(exc: PresentationGenerationError):
+    return render_template(
+        "error.html",
+        title="Grace PowerPoint could not be generated",
+        message=str(exc),
+    ), 422
+
+
 @app.errorhandler(SchemaVersionError)
 def _schema_error(exc: SchemaVersionError):
     if request.method != "GET" or request.is_json:
@@ -145,6 +157,19 @@ def _pdf_response(pdf: bytes, kind: str, label: str) -> Response:
         pdf,
         mimetype="application/pdf",
         headers={"Content-Disposition": f'{disposition}; filename="{filename}"'},
+    )
+
+
+def _pptx_response(pptx: bytes, label: str) -> Response:
+    slug = _slug(label)
+    filename = f"grace-presentation-{slug}.pptx" if slug else "grace-presentation.pptx"
+    return Response(
+        pptx,
+        mimetype=(
+            "application/vnd.openxmlformats-officedocument."
+            "presentationml.presentation"
+        ),
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -312,6 +337,17 @@ def large_print_pdf(week_id: int):
     d = week["data"]
     pdf = render_large_print_pdf(d["weekly"], d["standing"], d["insert"])
     return _pdf_response(pdf, "large-print-booklet", week["label"])
+
+
+@app.route("/weeks/<int:week_id>/grace-presentation.pptx")
+def grace_presentation(week_id: int):
+    conn = db.get_connection()
+    try:
+        week = _get_week_or_404(conn, week_id)
+    finally:
+        conn.close()
+    pptx = render_grace_presentation(week["data"])
+    return _pptx_response(pptx, week["label"])
 
 
 if __name__ == "__main__":

@@ -55,6 +55,16 @@
         <a class="btn" href="{{ url_for('large_print_pdf', week_id=week.id) }}" target="_blank">Preview</a>
       </div>
     </section>
+
+    <!-- ---- Grace PowerPoint ---- -->
+    <section class="card gen-card">
+      <h2>Grace PowerPoint</h2>
+      <p class="spec">Editable 4:3 presentation · Grace worship service.</p>
+      <p class="spec muted">Includes the selected creed, Grace hymns, scripture text, baptism, and Holy Communion when applicable.</p>
+      <div class="gen-actions">
+        <a class="btn primary" href="{{ url_for('grace_presentation', week_id=week.id) }}">Download Grace PowerPoint</a>
+      </div>
+    </section>
   </div>
 </main>
 </body>

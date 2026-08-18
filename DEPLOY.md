@@ -15,6 +15,7 @@ Run these commands as the deployment user:
 ```sh
 sudo apt update
 sudo apt install -y python3-venv python3-pip \
+    nodejs npm \
     libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 \
     fonts-liberation poppler-utils
 
@@ -30,6 +31,7 @@ cd /opt/bulletin-generator
 
 python3 -m venv .venv
 ./.venv/bin/python -m pip install -r requirements-dev.txt
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 ./.venv/bin/python -m pytest -q
 
 sudo chgrp -R bulletin /opt/bulletin-generator
@@ -73,9 +75,9 @@ After committing and pushing a tested change, run:
 The updater refuses tracked local production changes, then:
 
 1. records the currently deployed revision and fast-forwards Git;
-2. installs the pinned runtime and test dependencies;
+2. installs the pinned Python and PowerPoint runtime dependencies;
 3. creates an online timestamped SQLite backup;
-4. runs pytest and database/schema/PDF render preflight checks;
+4. runs pytest and database/schema/PDF/PowerPoint render preflight checks;
 5. installs the current systemd unit and restarts the service;
 6. verifies `/healthz`.
 
@@ -136,6 +138,7 @@ limit is 1 MiB (`BULLETIN_MAX_CONTENT_LENGTH=1048576`).
 | Native-library error | Confirm the Pango/Cairo packages above are installed |
 | Font/layout drift | `fc-list \| grep -i liberation` |
 | PDF returns HTTP 422 | Shorten the section named in the layout error |
+| PowerPoint returns HTTP 422 | Complete the missing creed, lesson, sermon, hymn, or baptism field named on the error page |
 | Update refuses to run | `git status`; production tracked files must be clean |
 | Preflight fails | Run pytest and `manage.py check --render` manually |
 | Rollback also fails | Inspect the journal and verify DB ownership/path |

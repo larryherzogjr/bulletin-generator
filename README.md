@@ -1,12 +1,13 @@
 # Grace & Zion Bulletin Generator
 
 Internal Flask application for editing weekly Grace & Zion worship content and
-generating the three print-ready PDFs used each Sunday.
+generating the three print-ready PDFs and Grace worship PowerPoint used each Sunday.
 
 ## Current status
 
 The application supports week creation/cloning, a sectioned editor, SQLite
-persistence, PDF preview/download, and a systemd/Gunicorn deployment. The
+persistence, PDF preview/download, Grace PowerPoint download, and a
+systemd/Gunicorn deployment. The
 sample build and automated suite verify the required page sizes and fail if
 content would produce an invalid print layout.
 
@@ -18,11 +19,12 @@ One external artifact is still needed for full visual acceptance:
 
 | Layer | Files | Responsibility |
 |---|---|---|
-| HTTP | `app.py`, `wsgi.py` | Flask routes, request protection, PDF responses |
+| HTTP | `app.py`, `wsgi.py` | Flask routes, request protection, file responses |
 | Editing UI | `templates/form.html`, `static/form.js`, `static/style.css` | Dynamic nested form and serialized saves |
 | Data contract | `schema.py` | Versioned canonical shape, cleanup, legacy migration |
 | Persistence | `db.py` | One SQLite row and JSON snapshot per week |
 | PDF rendering | `render.py`, `templates/*_template.html` | Jinja + WeasyPrint layouts plus booklet imposition |
+| PowerPoint rendering | `presentation.py`, `scripts/generate_grace_presentation.mjs`, `presentation_templates/` | Template-based editable Grace service deck |
 | Operations | `manage.py`, `deploy/` | Checks, backups, rendering, systemd deployment |
 
 Standing information is snapshotted into every week. Editing a current week
@@ -32,11 +34,12 @@ instead of being silently truncated.
 
 ## Development setup
 
-The validated runtime is Python 3.12. WeasyPrint also needs native Pango/Cairo
+The validated runtime is Python 3.12 plus Node.js 18 or newer. WeasyPrint also needs native Pango/Cairo
 libraries and Liberation Sans/Serif. On macOS:
 
 ```sh
 brew install pango cairo gdk-pixbuf libffi
+brew install node
 brew install --cask font-liberation
 /opt/homebrew/opt/python@3.12/bin/python3.12 -m venv .venv
 make install-dev
@@ -49,18 +52,22 @@ runtime plus pytest/PDF inspection tools.
 ## Validation and build
 
 ```sh
-make test      # pytest suite: schema, DB, HTTP/security, PDF contracts
-make build     # bulletin, insert, and large-print booklet under out/
+make test      # pytest suite: schema, DB, HTTP/security, PDF and PPTX contracts
+make build     # PDFs and Grace PowerPoint under out/
 make verify    # tests followed by the sample build
-make check     # active DB integrity/schema plus sample/latest PDF render
+make check     # active DB integrity/schema plus sample/latest output render
 ```
 
-The print contracts are strict:
+The output contracts are strict:
 
 - bulletin: exactly one 11 x 8.5 inch landscape page;
 - insert: exactly one 11 x 8.5 inch landscape page with two half-sheet panels.
 - large-print booklet: exactly four 17 x 11 inch landscape pages, imposed as
   two duplex Tabloid sheets in `8|1, 2|7, 6|3, 4|5` logical-page order.
+- Grace PowerPoint: editable 4:3 slides cloned from the supplied service
+  examples, including the selected creed, inferred lesson headings, optional
+  baptism and Grace Communion, long-stanza splitting, blank slides, and fade
+  transitions.
 
 The bulletin retains its minimum legible scale. The large-print booklet applies
 one uniform font scale to all full-text worship content and keeps reducing it as
@@ -78,7 +85,8 @@ layout error rather than a clipped or extra-page PDF.
 The home page lists saved weeks. Clone the most recent comparable week, edit
 the changed sections, save, and open Generate. The editor waits for an active
 save before navigating to the generated files and warns while changes or a
-save are pending. Entering a Grace hymn number loads all verses from the
+save are pending. The Generate page also downloads the Grace PowerPoint from
+the saved week. Entering a Grace hymn number loads all verses from the
 Ambassador hymn library into the corresponding editable large-print field.
 Untouched library text is replaced automatically when a cloned week's hymn
 number changes; manually edited verse selections require an explicit replace.

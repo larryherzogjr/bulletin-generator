@@ -1,0 +1,8 @@
+{
+  "name": "grace-zion-bulletin-generator",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pptx-automizer": "0.6.2"
+  }
+}

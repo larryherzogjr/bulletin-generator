@@ -6,14 +6,14 @@
     python manage.py list            # list weeks, newest first
     python manage.py show <id>       # show a week's label + section summary
     python manage.py clone           # clone the most recent week -> new row
-    python manage.py render <id>     # write the three print-ready PDFs
+    python manage.py render <id>     # write all PDFs and the Grace PowerPoint
     python manage.py backup [path]   # online SQLite backup (safe while app runs)
     python manage.py check [--render]# DB integrity/schema + optional PDF preflight
     python manage.py migrate         # back up, then persist current blob version
 
 This is a developer/ops convenience; the web form drives the same db.py
 functions. Kept dependency-light so `init`/`seed`/`list`/`clone` work even if
-WeasyPrint's native libs aren't present (only `render` imports it, lazily).
+rendering dependencies are not present (renderers are imported lazily).
 """
 
 from __future__ import annotations
@@ -107,20 +107,24 @@ def cmd_render(conn, args) -> int:
         render_insert_pdf,
         render_large_print_pdf,
     )
+    from presentation import render_grace_presentation
     out = BASE_DIR / "out"
     out.mkdir(exist_ok=True)
     blob = normalize_blob(week["data"])
     b = out / f"bulletin_{week['id']}.pdf"
     i = out / f"insert_{week['id']}.pdf"
     lp = out / f"large_print_{week['id']}.pdf"
+    pptx = out / f"grace_presentation_{week['id']}.pptx"
     b.write_bytes(render_bulletin_pdf(blob["weekly"], blob["standing"]))
     i.write_bytes(render_insert_pdf(blob["insert"]))
     lp.write_bytes(
         render_large_print_pdf(blob["weekly"], blob["standing"], blob["insert"])
     )
+    pptx.write_bytes(render_grace_presentation(blob))
     print(f"wrote {b} ({b.stat().st_size:,} B)")
     print(f"wrote {i} ({i.stat().st_size:,} B)")
     print(f"wrote {lp} ({lp.stat().st_size:,} B)")
+    print(f"wrote {pptx} ({pptx.stat().st_size:,} B)")
     return 0
 
 
@@ -170,6 +174,7 @@ def cmd_check(conn, args) -> int:
             render_insert_pdf,
             render_large_print_pdf,
         )
+        from presentation import render_grace_presentation
 
         targets = [("sample", _load_sample_blob())]
         if normalized:
@@ -178,6 +183,7 @@ def cmd_check(conn, args) -> int:
             render_bulletin_pdf(blob["weekly"], blob["standing"])
             render_insert_pdf(blob["insert"])
             render_large_print_pdf(blob["weekly"], blob["standing"], blob["insert"])
+            render_grace_presentation(blob)
             print(f"render check ok: {label}")
 
     print(f"database check ok: {len(weeks)} week(s), stored blobs compatible")

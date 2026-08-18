@@ -48,6 +48,9 @@ rollback() {
     else
       ./.venv/bin/python -m pip install -q -r requirements.txt
     fi
+    if [[ -f package-lock.json ]]; then
+      npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+    fi
     secure_checkout
     sudo cp "$APP_DIR/deploy/bulletin.service" "$UNIT_DEST"
     sudo systemctl daemon-reload
@@ -70,6 +73,7 @@ UPDATED=1
 
 echo "==> sync pinned dependencies"
 ./.venv/bin/python -m pip install -q -r requirements-dev.txt
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
 # New files from the pull are owned by this (admin) user; ensure the
 # unprivileged service user can still read them.

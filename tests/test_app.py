@@ -3,6 +3,7 @@ from copy import deepcopy
 import app as app_module
 import db
 from render import PDFLayoutError
+from presentation import PresentationGenerationError
 
 
 def _seed(client):
@@ -90,3 +91,36 @@ def test_pdf_layout_error_is_shown_instead_of_bad_pdf(client, monkeypatch):
     assert response.status_code == 422
     assert response.content_type.startswith("text/html")
     assert b"Shorten the content" in response.data
+
+
+def test_grace_powerpoint_download_headers(client, monkeypatch):
+    _seed(client)
+    monkeypatch.setattr(
+        app_module,
+        "render_grace_presentation",
+        lambda _data: b"PK\x03\x04presentation",
+    )
+
+    response = client.get("/weeks/1/grace-presentation.pptx")
+
+    assert response.status_code == 200
+    assert response.content_type == (
+        "application/vnd.openxmlformats-officedocument."
+        "presentationml.presentation"
+    )
+    assert response.headers["Content-Disposition"].startswith("attachment;")
+    assert "grace-presentation-trinity-sunday" in response.headers["Content-Disposition"]
+
+
+def test_powerpoint_generation_error_is_actionable(client, monkeypatch):
+    _seed(client)
+
+    def fail(_data):
+        raise PresentationGenerationError("Add two scripture lesson references.")
+
+    monkeypatch.setattr(app_module, "render_grace_presentation", fail)
+    response = client.get("/weeks/1/grace-presentation.pptx")
+
+    assert response.status_code == 422
+    assert response.content_type.startswith("text/html")
+    assert b"Add two scripture lesson references" in response.data

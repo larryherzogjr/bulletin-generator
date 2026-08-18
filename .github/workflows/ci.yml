@@ -21,6 +21,10 @@ jobs:
             requirements.txt
             requirements-dev.txt
             constraints.txt
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
       - name: Install WeasyPrint system dependencies and fonts
         run: |
           sudo apt-get update
@@ -29,14 +33,17 @@ jobs:
             libpangocairo-1.0-0 fonts-liberation poppler-utils
       - name: Install Python dependencies
         run: python -m pip install -r requirements-dev.txt
+      - name: Install PowerPoint dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Static and configuration checks
         run: |
           python -m pip check
           node --check static/form.js
           node --check static/index.js
+          node --check scripts/generate_grace_presentation.mjs
           bash -n deploy/update.sh
           BULLETIN_DB=/tmp/bulletin-ci.sqlite3 gunicorn --check-config wsgi:application
       - name: Run tests
         run: python -m pytest -q
-      - name: Build sample PDFs
+      - name: Build sample outputs
         run: python build_samples.py
