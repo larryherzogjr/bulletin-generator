@@ -161,6 +161,26 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     )
 
 
+def test_baptism_slide_allows_a_blank_name(sample_blob):
+    blob = deepcopy(sample_blob)
+    blob["weekly"]["baptism"] = {
+        "enabled": True,
+        "text": "",
+        "bulletin_text": "",
+    }
+
+    pptx = render_grace_presentation(blob)
+    archive, _presentation, parts = _ordered_slides(pptx)
+    texts = [
+        _normalized_slide_text(ET.fromstring(archive.read(part)))
+        for part in parts
+    ]
+
+    baptism = texts.index("Baptism")
+    assert texts[baptism + 1] == ""
+    assert "Alora Christensen" not in "\n".join(texts)
+
+
 def test_food_at_grace_appends_table_prayer_between_blank_slides(sample_blob):
     without_food = deepcopy(sample_blob)
     without_food["weekly"]["food_at_grace"] = False

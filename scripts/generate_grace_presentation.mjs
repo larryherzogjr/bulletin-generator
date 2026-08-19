@@ -613,7 +613,7 @@ export async function generatePresentation(blob, outputPath) {
   addSlide(presentation, COMMON.postOpeningHymnBlank);
 
   if (weekly.baptism?.enabled) {
-    const baptismName = requireText(weekly.baptism?.text, "Baptism name");
+    const baptismName = plainText(weekly.baptism?.text);
     addSlide(
       presentation,
       12,
