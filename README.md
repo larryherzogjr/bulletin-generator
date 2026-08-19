@@ -137,14 +137,15 @@ timestamped file under `/var/lib/bulletin/backups/`.
 
 ## Security boundary
 
-The app intentionally has no built-in user accounts and the production unit
-binds only to `127.0.0.1`. Browser cross-site writes are rejected and JSON
-submissions default to a 1 MiB ceiling, configurable with
+The app intentionally has no built-in user accounts. The production unit makes
+the existing service available on port 8000 of the trusted homelab LAN; ESV
+lookup does not create another service or port. Browser cross-site writes are
+rejected and JSON submissions default to a 1 MiB ceiling, configurable with
 `BULLETIN_MAX_CONTENT_LENGTH`.
 
-If the app is exposed through nginx or Caddy, keep Gunicorn loopback-only, use
-HTTPS, and require authentication at the reverse proxy. Do not publish the
-Gunicorn port directly to an untrusted network.
+Restrict port 8000 to the intended LAN/VPN and do not expose it to the public
+internet. If the app is later placed behind nginx or Caddy, bind Gunicorn to
+loopback and require HTTPS and authentication at the reverse proxy.
 
 See `DEPLOY.md` for installation, automated backup/preflight/rollback behavior,
 and recovery commands. `SPEC.md` records the print and product decisions.

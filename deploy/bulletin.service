@@ -2,9 +2,9 @@
 # Install: copy to /etc/systemd/system/bulletin.service, then:
 #   sudo systemctl daemon-reload && sudo systemctl enable --now bulletin
 #
-# Mirrors the Sermon Broadcaster pattern: a venv-backed gunicorn process behind
-# the homelab LAN, managed by systemd, updated via `git pull`. Coexists with
-# unifi-tools and sermon-broadcaster — this one owns loopback port 5005.
+# Mirrors the Sermon Broadcaster pattern: a venv-backed gunicorn process on the
+# trusted homelab LAN, managed by systemd, updated via `git pull`. This is the
+# existing bulletin service at port 8000; ESV lookup does not add a service.
 #
 # Ownership model: the checkout (/opt/bulletin-generator) is owned by the admin
 # user who runs `git pull` (see deploy/update.sh); this service runs as the
@@ -37,7 +37,7 @@ EnvironmentFile=-/etc/bulletin-generator.env
 ExecStart=/opt/bulletin-generator/.venv/bin/gunicorn \
     --workers 2 \
     --timeout 120 \
-    --bind 127.0.0.1:5005 \
+    --bind 0.0.0.0:8000 \
     wsgi:application
 
 Restart=on-failure

@@ -1,8 +1,9 @@
 # Deploying the bulletin generator
 
-Production runs Gunicorn under systemd on a Linux VM. Gunicorn binds only to
-`127.0.0.1:5005`; nginx or Caddy should provide HTTPS, LAN routing, and
-authentication. The application itself intentionally has no user accounts.
+Production runs Gunicorn under systemd on a Linux VM. The existing bulletin
+service listens at `0.0.0.0:8000` for direct use on the trusted homelab LAN.
+The ESV integration runs inside this same process and adds no listening port.
+The application itself intentionally has no user accounts.
 
 The checkout and virtual environment are owned by the sudo-capable deployment
 user. The service runs as the unprivileged `bulletin` user and can write only
@@ -40,7 +41,7 @@ sudo find /opt/bulletin-generator -type d -exec chmod g+s {} +
 sudo cp deploy/bulletin.service /etc/systemd/system/bulletin.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now bulletin
-curl -fsS http://127.0.0.1:5005/healthz && echo OK
+curl -fsS http://127.0.0.1:8000/healthz && echo OK
 ```
 
 ## Automatic ESV Scripture
@@ -145,14 +146,11 @@ before reopening access.
 
 ## Network boundary
 
-Do not change Gunicorn to `0.0.0.0`. Keep it loopback-only and proxy it through
-nginx/Caddy. The proxy should:
-
-- terminate HTTPS;
-- require authentication;
-- preserve the original `Host` header;
-- restrict access to the intended LAN/VPN ranges;
-- avoid caching edit or PDF responses containing current parish data.
+Port 8000 is intended only for the trusted LAN/VPN. Restrict it at the host and
+network firewalls and do not forward it from the public internet. If the app is
+later placed behind nginx or Caddy, change Gunicorn to a loopback bind and have
+the proxy provide HTTPS and authentication, preserve the original `Host`
+header, and avoid caching edit or PDF responses containing parish data.
 
 The app rejects browser requests marked cross-site and POST requests whose
 Origin/Referer host differs from the requested host. The default JSON request
@@ -170,4 +168,4 @@ limit is 1 MiB (`BULLETIN_MAX_CONTENT_LENGTH=1048576`).
 | Update refuses to run | `git status`; production tracked files must be clean |
 | Preflight fails | Run pytest and `manage.py check --render` manually |
 | Rollback also fails | Inspect the journal and verify DB ownership/path |
-| Port conflict | `sudo ss -ltnp \| grep :5005` |
+| Port conflict | `sudo ss -ltnp \| grep :8000` |
