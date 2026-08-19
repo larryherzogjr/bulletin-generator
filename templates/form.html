@@ -85,9 +85,15 @@
                  {% if data.weekly.baptism.enabled %}checked{% endif %}>
           <strong>Baptism</strong> <span class="hint">prints before Order of Service</span>
         </label>
-        <div class="opt-body">
-          <input type="text" data-text placeholder="family / names (leave blank for just &ldquo;Baptism&rdquo;)"
-                 value="{{ data.weekly.baptism.text }}">
+        <div class="opt-body stacked">
+          <label>Family names <span class="hint">for the bulletin and PowerPoint</span>
+            <input type="text" data-text placeholder="family / names (leave blank for just &ldquo;Baptism&rdquo;)"
+                   value="{{ data.weekly.baptism.text }}">
+          </label>
+          <label>Insert baptism announcement <span class="hint">prints after the Communion Sunday notice, when applicable</span>
+            <textarea data-option-field="insert_text" rows="3"
+                      placeholder="Benjamin Ernest Melvin, son of Randy &amp; Kristi Melvin will be brought to the Lord in Baptism. Sponsors are Troy &amp; Bobbie Uglem.">{{ data.weekly.baptism.insert_text }}</textarea>
+          </label>
         </div>
       </div>
 

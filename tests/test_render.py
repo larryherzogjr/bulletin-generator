@@ -153,6 +153,24 @@ def test_insert_prayer_box_has_larger_minimum_and_can_grow_to_half_page(sample_b
     assert _page_sizes(render_insert_pdf(insert)) == [(792.0, 612.0)]
 
 
+def test_insert_service_notices_render_first_and_in_requested_order(sample_blob):
+    insert = deepcopy(sample_blob["insert"])
+    insert["communion_sunday"] = True
+    insert["baptism_announcement"] = (
+        "Benjamin Ernest Melvin will be brought to the Lord in Baptism."
+    )
+
+    html = render_insert_html(insert)
+
+    communion = html.index("Today is Communion Sunday.")
+    baptism = html.index("Baptized Today ~")
+    prayer = html.index("Pray for one another.")
+    assert communion < baptism < prayer
+    assert "The Lord's table is open to all baptized and confirmed believers" in html
+    assert "Benjamin Ernest Melvin will be brought" in html
+    assert _page_sizes(render_insert_pdf(insert)) == [(792.0, 612.0)]
+
+
 def test_rich_text_allowlist_escapes_non_formatting_markup(sample_blob):
     weekly = deepcopy(sample_blob["weekly"])
     weekly["special_music"] = "<b>Allowed</b><img src=x><script>bad()</script>"

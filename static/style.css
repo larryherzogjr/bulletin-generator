@@ -188,6 +188,7 @@ details[open] summary::before { content: "▾ "; }
 .optional .toggle input { width: auto; margin: 0; }
 .optional .opt-body { margin-top: .6rem; display: none; gap: 1.2rem; }
 .optional.on .opt-body { display: flex; }
+.optional .opt-body.stacked { flex-direction: column; gap: .65rem; }
 .optional .opt-body input[type="text"] { flex: 1; }
 .optional .check { display: inline-flex; align-items: center; gap: .35rem; font-weight: 400; color: var(--ink); }
 .optional .check input { width: auto; margin: 0; }

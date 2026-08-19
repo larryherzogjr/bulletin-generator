@@ -62,6 +62,9 @@ The output contracts are strict:
 
 - bulletin: exactly one 11 x 8.5 inch landscape page;
 - insert: exactly one 11 x 8.5 inch landscape page with two half-sheet panels.
+  Its front panel begins with the fixed Communion Sunday invitation when Holy
+  Communion is enabled, followed by the free-form Baptized Today announcement
+  when Baptism is enabled.
 - large-print booklet: exactly four 17 x 11 inch landscape pages, imposed as
   two duplex Tabloid sheets in `8|1, 2|7, 6|3, 4|5` logical-page order.
 - Grace PowerPoint: editable 4:3 slides cloned from the supplied service
@@ -69,11 +72,13 @@ The output contracts are strict:
   baptism and Grace Communion, long-stanza splitting, blank slides, and fade
   transitions.
 
-The bulletin retains its minimum legible scale. The large-print booklet applies
-one uniform font scale to all full-text worship content and keeps reducing it as
-needed to preserve every Psalm, hymn, lesson, response, and creed within the
-four allocated reading pages. Pathological content still returns an actionable
-layout error rather than a clipped or extra-page PDF.
+The bulletin and insert retain minimum legible scales; the insert uniformly
+reduces its front-panel typography when service notices make a full week too
+tall. The large-print booklet applies one uniform font scale to all full-text
+worship content and keeps reducing it as needed to preserve every Psalm, hymn,
+lesson, response, and creed within the four allocated reading pages.
+Pathological content still returns an actionable layout error rather than a
+clipped or extra-page PDF.
 
 ## Run locally
 

@@ -18,6 +18,7 @@ Shape (three sections, matching the render functions):
     grace_events_banner, zion_events_banner               # str
     prelude:           [[who, names], ...]
     scripture_lessons: [[ref, pages], ...]
+    baptism:           {enabled, text, insert_text}
     opening_hymn/sermon_hymn/closing_hymn:
       {grace: {num, title}, zion: {num, title}}
     grace_events/zion_events: [[day, [[name, time], ...]], ...]
@@ -37,6 +38,7 @@ Shape (three sections, matching the render functions):
   insert:
     prayer_tail, missionaries, congregations, sick_notice, notes_heading,
     memory_verse_ref, memory_verse_text,                  # mirror of weekly
+    communion_sunday, baptism_announcement                # derived from weekly
     next_date
     prayer: [{label, names: [str]}, ...]
     next_readings: [[label, ref], ...]
@@ -51,7 +53,7 @@ from copy import deepcopy
 # Stored blobs without a version are legacy version 0. Normalizing them applies
 # the existing prayer/hymn migrations and upgrades them to this version. A blob
 # from a newer application is rejected instead of silently losing unknown data.
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 
 class SchemaVersionError(ValueError):
@@ -211,7 +213,11 @@ def blank_blob() -> dict:
             # Optional sections. Each has an `enabled` flag; when off they don't
             # render at all. Baptism/Confirmation carry a free-form line (names);
             # a blank line renders the heading alone (no "~ ").
-            "baptism": {"enabled": False, "text": ""},        # before ORDER OF SERVICE
+            "baptism": {
+                "enabled": False,
+                "text": "",          # family/names before ORDER OF SERVICE
+                "insert_text": "",   # free-form Baptized Today announcement
+            },
             # Each hymn carries a Grace and a Zion entry, each {num, title}.
             # The Zion hymnal sometimes lists a different song; its title renders
             # under the Grace title only when present.
@@ -267,6 +273,10 @@ def blank_blob() -> dict:
             "sick_notice": "",
             "memory_verse_ref": "",
             "memory_verse_text": "",
+            # Derived mirrors used by the insert-only renderer. These are
+            # overwritten from weekly whenever a blob is normalized.
+            "communion_sunday": False,
+            "baptism_announcement": "",
             "next_date": "",
             "next_readings": [],
             "announcements": [],
@@ -354,9 +364,19 @@ def _bool(v) -> bool:
 
 
 def _text_section(d) -> dict:
-    """Optional {enabled, text} section (Baptism, Confirmation)."""
+    """Simple optional {enabled, text} section (currently Confirmation)."""
     d = d if isinstance(d, dict) else {}
     return {"enabled": _bool(d.get("enabled")), "text": _s(d.get("text"))}
+
+
+def _baptism(d) -> dict:
+    """Optional Baptism section with bulletin and insert wording."""
+    d = d if isinstance(d, dict) else {}
+    return {
+        "enabled": _bool(d.get("enabled")),
+        "text": _s(d.get("text")),
+        "insert_text": _s(d.get("insert_text")),
+    }
 
 
 def _communion(d) -> dict:
@@ -439,10 +459,22 @@ def _migrate_v2_to_v3(migrated: dict) -> dict:
     return migrated
 
 
+def _migrate_v3_to_v4(migrated: dict) -> dict:
+    """Add separate Baptism wording for the top of the insert."""
+    weekly = migrated.get("weekly")
+    if isinstance(weekly, dict):
+        baptism = weekly.get("baptism")
+        if isinstance(baptism, dict):
+            baptism.setdefault("insert_text", "")
+    migrated["schema_version"] = 4
+    return migrated
+
+
 _MIGRATIONS = {
     0: _migrate_v0_to_v1,
     1: _migrate_v1_to_v2,
     2: _migrate_v2_to_v3,
+    3: _migrate_v3_to_v4,
 }
 
 
@@ -492,7 +524,7 @@ def normalize_blob(blob: dict) -> dict:
     w["confession_of_faith"] = creed if creed in CREEDS or creed == "" else CREEDS[0]
     w["prelude"] = _pairs(w_in.get("prelude"))
     w["scripture_lessons"] = _pairs(w_in.get("scripture_lessons"))
-    w["baptism"] = _text_section(w_in.get("baptism"))
+    w["baptism"] = _baptism(w_in.get("baptism"))
     for h in _HYMNS:
         w[h] = _hymn(w_in.get(h))
     w["confirmation"] = _text_section(w_in.get("confirmation"))
@@ -542,5 +574,13 @@ def normalize_blob(blob: dict) -> dict:
     # Shared memory verse: weekly is the single source; mirror into insert.
     i["memory_verse_ref"] = w["memory_verse_ref"]
     i["memory_verse_text"] = w["memory_verse_text"]
+
+    # Service notices are entered alongside their Worship checkboxes but print
+    # at the very top of the insert's front panel. Keeping derived values in the
+    # insert section preserves the insert renderer's single-section contract.
+    i["communion_sunday"] = w["communion"]["enabled"]
+    i["baptism_announcement"] = (
+        w["baptism"]["insert_text"] if w["baptism"]["enabled"] else ""
+    )
 
     return b
