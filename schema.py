@@ -12,7 +12,7 @@ Shape (three sections, matching the render functions):
 
   weekly:
     liturgical_day, date, call_to_worship, order_of_service,
-    confession_of_faith (one of CREEDS), preacher, sermon_text,
+    confession_of_faith (one of CREEDS), food_at_grace, preacher, sermon_text,
     scripture_text_source ("manual" or transient "esv"),
     memory_verse_ref, memory_verse_text,                  # shared w/ insert
     grace_events_banner, zion_events_banner               # str
@@ -203,6 +203,7 @@ def blank_blob() -> dict:
             "call_to_worship": "",
             "order_of_service": "",
             "confession_of_faith": CREEDS[0],
+            "food_at_grace": False,
             "memory_verse_ref": "",
             "memory_verse_text": "",
             # Manual text is stored with the week. Automatic ESV text is
@@ -532,6 +533,7 @@ def normalize_blob(blob: dict) -> dict:
     # alone, no "~ Creed" suffix). Any other value falls back to the default.
     creed = _s(w_in.get("confession_of_faith"))
     w["confession_of_faith"] = creed if creed in CREEDS or creed == "" else CREEDS[0]
+    w["food_at_grace"] = _bool(w_in.get("food_at_grace"))
     w["prelude"] = _pairs(w_in.get("prelude"))
     w["scripture_lessons"] = _pairs(w_in.get("scripture_lessons"))
     w["baptism"] = _baptism(w_in.get("baptism"))

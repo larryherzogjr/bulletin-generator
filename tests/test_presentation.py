@@ -161,6 +161,34 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     )
 
 
+def test_food_at_grace_appends_table_prayer_between_blank_slides(sample_blob):
+    without_food = deepcopy(sample_blob)
+    without_food["weekly"]["food_at_grace"] = False
+    without_pptx = render_grace_presentation(without_food)
+    without_archive, _presentation, without_parts = _ordered_slides(without_pptx)
+    without_texts = [
+        _normalized_slide_text(ET.fromstring(without_archive.read(part)))
+        for part in without_parts
+    ]
+
+    with_food = deepcopy(sample_blob)
+    with_food["weekly"]["food_at_grace"] = True
+    with_pptx = render_grace_presentation(with_food)
+    with_archive, _presentation, with_parts = _ordered_slides(with_pptx)
+    with_roots = [ET.fromstring(with_archive.read(part)) for part in with_parts]
+    with_texts = [_normalized_slide_text(root) for root in with_roots]
+
+    assert len(with_parts) == len(without_parts) + 2
+    assert not any("Be present at our table" in text for text in without_texts)
+    assert with_texts[-3] == ""
+    assert with_texts[-2] == (
+        "Be present at our table, Lord; be here and ev'rywhere adored; "
+        "These mercies bless, and grant that we May feast in paradise with Thee. Amen."
+    )
+    assert with_texts[-1] == ""
+    assert _shape_font_sizes(with_roots[-2], "Title 1") == {4000}
+
+
 @pytest.mark.parametrize(
     ("creed", "expected", "excluded"),
     [

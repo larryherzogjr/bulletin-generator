@@ -98,6 +98,14 @@ const COMMON = {
   gospelResponse: 32,
 };
 
+const TABLE_PRAYER = [
+  "Be present at our table, Lord;",
+  "be here and ev'rywhere adored;",
+  "These mercies bless, and grant that we",
+  "May feast in paradise with Thee.",
+  "Amen.",
+].join("\n");
+
 const OLD_TESTAMENT_BOOKS = new Set([
   "genesis", "exodus", "leviticus", "numbers", "deuteronomy", "joshua",
   "judges", "ruth", "1 samuel", "2 samuel", "1 kings", "2 kings",
@@ -730,6 +738,14 @@ export async function generatePresentation(blob, outputPath) {
 
   addSlide(presentation, template.doxology);
   addSlide(presentation, template.finalBlank);
+  if (weekly.food_at_grace) {
+    addSlide(
+      presentation,
+      template.doxology,
+      setElementTextAndFont("Title 1", TABLE_PRAYER, 40),
+    );
+    addSlide(presentation, template.finalBlank);
+  }
   await presentation.write(outputName);
   return outputPath;
 }

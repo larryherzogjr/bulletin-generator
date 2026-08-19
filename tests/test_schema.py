@@ -14,6 +14,7 @@ def test_blank_blob_has_complete_versioned_shape():
     assert blob["schema_version"] == CURRENT_SCHEMA_VERSION
     assert set(blob) == {"schema_version", "weekly", "standing", "insert"}
     assert blob["weekly"]["confession_of_faith"] == CREEDS[0]
+    assert blob["weekly"]["food_at_grace"] is False
     assert blob["weekly"]["scripture_text_source"] == "manual"
     assert len(blob["insert"]["prayer"]) == 3
     assert "notes_heading" in blob["insert"]
@@ -97,6 +98,14 @@ def test_invalid_scripture_source_falls_back_to_manual():
     blob["weekly"]["scripture_text_source"] = "unknown"
 
     assert normalize_blob(blob)["weekly"]["scripture_text_source"] == "manual"
+
+
+def test_food_at_grace_is_normalized_as_a_boolean():
+    blob = blank_blob()
+    blob["weekly"]["food_at_grace"] = "on"
+
+    assert normalize_blob(blob)["weekly"]["food_at_grace"] is True
+    assert normalize_blob({})["weekly"]["food_at_grace"] is False
 
 
 def test_baptism_bulletin_announcement_is_normalized_and_preserved_when_disabled():

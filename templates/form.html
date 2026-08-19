@@ -51,6 +51,13 @@
         </label>
       </div>
 
+      <label class="top-option">
+        <input type="checkbox" data-key="weekly.food_at_grace"
+               {% if data.weekly.food_at_grace %}checked{% endif %}>
+        <strong>Food at Grace?</strong>
+        <span class="hint">adds the table prayer to the end of the Grace PowerPoint</span>
+      </label>
+
       <fieldset class="creed">
         <legend>Confession of Faith</legend>
         {% for creed in creeds %}

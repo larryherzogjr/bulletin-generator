@@ -12,6 +12,7 @@ WEEKLY = {
     "call_to_worship": "Psalm 8",
     "order_of_service": "Grace-<i>Ambassador</i> Pg. 2; Zion-<i>Concordia</i> Pg. 408",
     "confession_of_faith": "Nicene Creed",
+    "food_at_grace": False,
 
     "memory_verse_ref": "1 Peter 5:6-7",
     "memory_verse_text": (

@@ -4,6 +4,7 @@
  * The DOM is the source of truth. data-* attributes describe where each input
  * belongs in the blob:
  *   data-key="weekly.date"            -> scalar string at that path
+ *   data-key on a checkbox             -> boolean at that path
  *   data-list + rows with data-col    -> list of pairs/singles
  *   data-events + event-day blocks    -> [[day, [[name,time],...]], ...]
  *   data-anns + ann-row blocks        -> [{heading, body}, ...]
@@ -686,7 +687,7 @@
 
     // scalars
     form.querySelectorAll("[data-key]").forEach(function (el) {
-      setPath(blob, el.dataset.key, el.value);
+      setPath(blob, el.dataset.key, el.type === "checkbox" ? el.checked : el.value);
     });
 
     // confession of faith radio

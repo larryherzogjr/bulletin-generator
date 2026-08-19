@@ -100,6 +100,11 @@ textarea[readonly], input[readonly] { background: #f3f5f7; color: #465462; }
 /* creed radios */
 .creed { border: 1px solid var(--line); border-radius: 6px; padding: .6rem .8rem; margin: 1rem 0; }
 .creed legend { font-size: .85rem; font-weight: 600; color: var(--muted); padding: 0 .3rem; }
+.top-option {
+  display: flex; align-items: center; gap: .45rem; margin: 1rem 0;
+  color: var(--ink); cursor: pointer;
+}
+.top-option input { width: auto; margin: 0; }
 .radio { display: inline-flex; align-items: center; gap: .35rem; margin-right: 1.2rem; font-weight: 400; color: var(--ink); }
 .radio input { width: auto; margin: 0; }
 

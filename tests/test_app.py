@@ -1,4 +1,5 @@
 from copy import deepcopy
+import re
 
 import app as app_module
 import db
@@ -47,6 +48,23 @@ def test_full_http_flow_and_download_headers(client, sample_blob):
     assert "large-print-booklet-first-sunday" in large_print.headers["Content-Disposition"]
 
     assert client.get("/weeks/999/edit").status_code == 404
+
+
+def test_food_at_grace_checkbox_is_shown_and_preserves_checked_state(client, sample_blob):
+    week_id = _seed(client)
+    edit = client.get(f"/weeks/{week_id}/edit")
+    assert b"Food at Grace?" in edit.data
+    assert b'data-key="weekly.food_at_grace"' in edit.data
+
+    payload = deepcopy(sample_blob)
+    payload["weekly"]["food_at_grace"] = True
+    assert client.post(f"/weeks/{week_id}", json=payload).status_code == 200
+
+    checked = client.get(f"/weeks/{week_id}/edit")
+    assert re.search(
+        rb'<input type="checkbox" data-key="weekly\.food_at_grace"[^>]*checked',
+        checked.data,
+    )
 
 
 def test_cross_origin_write_is_rejected(client):
