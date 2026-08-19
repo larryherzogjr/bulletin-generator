@@ -45,6 +45,34 @@ def _normalized_slide_text(root):
     return " ".join(text.split())
 
 
+def _shape_text(root, shape_name):
+    for shape in root.findall(f".//{{{P_NS}}}sp"):
+        properties = shape.find(f"{{{P_NS}}}nvSpPr/{{{P_NS}}}cNvPr")
+        if properties is not None and properties.attrib.get("name") == shape_name:
+            return "".join(
+                node.text or "" for node in shape.iter(f"{{{A_NS}}}t")
+            )
+    return ""
+
+
+def _shape_font_sizes(root, shape_name):
+    for shape in root.findall(f".//{{{P_NS}}}sp"):
+        properties = shape.find(f"{{{P_NS}}}nvSpPr/{{{P_NS}}}cNvPr")
+        if properties is None or properties.attrib.get("name") != shape_name:
+            continue
+        return {
+            int(node.attrib["sz"])
+            for node in shape.iter()
+            if node.tag in {
+                f"{{{A_NS}}}rPr",
+                f"{{{A_NS}}}defRPr",
+                f"{{{A_NS}}}endParaRPr",
+            }
+            and "sz" in node.attrib
+        }
+    return set()
+
+
 def _assert_internal_relationship_targets_exist(archive):
     members = set(archive.namelist())
     for member in members:
@@ -86,7 +114,7 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     roots = [ET.fromstring(archive.read(part)) for part in parts]
     texts = [_normalized_slide_text(root) for root in roots]
 
-    assert len(parts) == 65
+    assert len(parts) == 63
     assert all(root.find(f".//{{{P_NS}}}fade") is not None for root in roots)
     assert all(part in archive.namelist() for part in parts)
 
@@ -116,6 +144,21 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     assert "This weekly value must not appear" not in joined
     assert "Genesis 1:1-2:4a" in joined
     assert "G-pg 1" not in joined
+
+    scripture_bodies = [
+        (_shape_text(root, "Content Placeholder 2"), root)
+        for root in roots
+        if _shape_text(root, "Content Placeholder 2").startswith(
+            ("Peter, standing", "Then the eleven disciples")
+        )
+    ]
+    assert len(scripture_bodies) == 2
+    assert all("<sup>" not in text for text, _root in scripture_bodies)
+    assert all(not text.startswith(("14", "16")) for text, _root in scripture_bodies)
+    assert all(
+        _shape_font_sizes(root, "Content Placeholder 2") == {3400}
+        for _text, root in scripture_bodies
+    )
 
 
 @pytest.mark.parametrize(
@@ -204,3 +247,118 @@ def test_long_hymn_stanzas_are_split_without_losing_text():
     assert len(chunks) > 1
     assert all(len(chunk) <= 240 for chunk in chunks)
     assert " ".join("\n".join(chunks).split()) == " ".join(stanza.split())
+
+
+def test_hymn_refrain_is_repeated_after_every_verse():
+    hymn = (
+        "Refrain:\nSing the whole refrain,\nSing it once again.\n\n"
+        "1 This is the first verse,\nWith its second line.\n\n"
+        "2 This is the second verse,\nWith another line."
+    )
+    script = (
+        'import { splitHymnSlideTexts } from "./scripts/generate_grace_presentation.mjs";'
+        f"console.log(JSON.stringify(splitHymnSlideTexts({json.dumps(hymn)})));"
+    )
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    slides = json.loads(result.stdout)
+
+    assert len(slides) == 2
+    assert slides[0].startswith("1 This is the first verse")
+    assert slides[1].startswith("2 This is the second verse")
+    assert all(slide.count("Refrain:") == 1 for slide in slides)
+    assert all("Sing the whole refrain,\nSing it once again." in slide for slide in slides)
+    assert all(slide.index("Refrain:") > slide.index("verse") for slide in slides)
+
+
+def test_every_ambassador_refrain_is_present_on_each_generated_hymn_slide():
+    script = """
+import fs from "node:fs";
+import { splitHymnSlideTexts } from "./scripts/generate_grace_presentation.mjs";
+const library = JSON.parse(fs.readFileSync("static/data/ambassador_hymns.json", "utf8"));
+const results = Object.entries(library)
+  .filter(([_number, text]) => /(?:^|\\n)Refrain:/i.test(text))
+  .map(([number, text]) => {
+    const slides = splitHymnSlideTexts(text);
+    return {
+      number,
+      slideCount: slides.length,
+      allRepeatRefrain: slides.every((slide) => slide.includes("Refrain:")),
+    };
+  });
+console.log(JSON.stringify(results));
+"""
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    results = json.loads(result.stdout)
+
+    assert results
+    assert all(result["slideCount"] > 0 for result in results)
+    assert all(result["allRepeatRefrain"] for result in results)
+
+
+def test_generated_hymn_slides_repeat_refrain_and_fit_the_font(sample_blob):
+    blob = deepcopy(sample_blob)
+    blob["weekly"]["large_print"]["opening_hymn_text"] = (
+        "Refrain:\nSing the whole refrain,\nSing it once again.\n\n"
+        "1 This is the first verse,\nWith its second line.\n\n"
+        "2 This is the second verse,\nWith another line."
+    )
+
+    pptx = render_grace_presentation(blob)
+    archive, _presentation, parts = _ordered_slides(pptx)
+    roots = [ET.fromstring(archive.read(part)) for part in parts]
+    hymn_slides = [
+        root for root in roots if "Sing the whole refrain" in _shape_text(root, "Title 1")
+    ]
+
+    assert len(hymn_slides) == 2
+    assert all(_shape_text(root, "Title 1").count("Refrain:") == 1 for root in hymn_slides)
+    assert all("Sing it once again." in _shape_text(root, "Title 1") for root in hymn_slides)
+    assert all(_shape_font_sizes(root, "Title 1") == {3200} for root in hymn_slides)
+
+
+def test_scripture_slides_keep_whole_verses_hide_numbers_and_adjust_font():
+    long_verse = " ".join(["Alpha"] * 70)
+    second_verse = "Beta remains a complete verse."
+    third_verse = "Gamma also remains complete."
+    scripture = (
+        f"<sup>1</sup>{long_verse} "
+        f"<sup>2</sup>{second_verse} "
+        f"<sup>3</sup>{third_verse}"
+    )
+    script = (
+        'import { splitScriptureSlideTexts } from "./scripts/generate_grace_presentation.mjs";'
+        f"console.log(JSON.stringify(splitScriptureSlideTexts({json.dumps(scripture)})));"
+    )
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    slides = json.loads(result.stdout)
+
+    assert [slide["text"] for slide in slides] == [
+        long_verse,
+        f"{second_verse} {third_verse}",
+    ]
+    assert slides[0]["fontSize"] < 40
+    assert all("<sup>" not in slide["text"] for slide in slides)
+    assert " ".join(slide["text"] for slide in slides) == (
+        f"{long_verse} {second_verse} {third_verse}"
+    )

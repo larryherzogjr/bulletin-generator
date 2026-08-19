@@ -245,33 +245,156 @@ export function splitProse(value, maxChars) {
 }
 
 export function splitHymnVerses(value) {
+  return hymnSections(value).verses;
+}
+
+function hymnSections(value) {
   const text = plainText(value);
-  if (!text) return [];
-  let verses = text.split(/\n\s*\n+/).map((verse) => verse.trim()).filter(Boolean);
-  if (verses.length === 1) {
-    verses = text.split(/\n(?=\s*\d+\s+)/).map((verse) => verse.trim()).filter(Boolean);
+  if (!text) return { verses: [], refrain: "" };
+  const refrainBlocks = [];
+  const verseBlocks = [];
+  for (const block of text.split(/\n\s*\n+/).map((item) => item.trim()).filter(Boolean)) {
+    if (/^(?:refrain|chorus)\s*:?\s*(?:\n|$)/i.test(block)) {
+      refrainBlocks.push(block);
+    } else {
+      verseBlocks.push(block);
+    }
   }
-  return verses;
+  let verses = verseBlocks;
+  if (verses.length === 1) {
+    verses = verses[0].split(/\n(?=\s*\d+\s+)/).map((verse) => verse.trim()).filter(Boolean);
+  }
+  return { verses, refrain: refrainBlocks.join("\n") };
+}
+
+function splitHymnLines(lines, maxChars, maxLines) {
+  const slides = [];
+  const fittedLines = lines.flatMap((line) => (
+    line.length > maxChars ? splitProse(line, maxChars) : [line]
+  ));
+  let current = [];
+  for (const line of fittedLines) {
+    const candidate = [...current, line].join("\n");
+    if (current.length && (current.length >= maxLines || candidate.length > maxChars)) {
+      slides.push(current);
+      current = [line];
+    } else {
+      current.push(line);
+    }
+  }
+  if (current.length) slides.push(current);
+  return slides;
+}
+
+function formatVerseAndRefrain(verseLines, refrainLines, maxTotalLines) {
+  const contentLines = verseLines.length + refrainLines.length;
+  const targetLines = Math.min(maxTotalLines, Math.max(contentLines + 1, 10));
+  const blankLines = Math.max(1, targetLines - contentLines);
+  return `${verseLines.join("\n")}${"\n".repeat(blankLines + 1)}${refrainLines.join("\n")}`;
+}
+
+export function hymnSlideFontSize(value) {
+  const text = String(value ?? "");
+  const lineCount = text.split("\n").length;
+  const characterCount = text.replace(/\s+/g, " ").trim().length;
+  if (lineCount <= 7 && characterCount <= 240) return 40;
+  if (lineCount <= 9 && characterCount <= 320) return 36;
+  if (lineCount <= 11 && characterCount <= 400) return 32;
+  if (lineCount <= 14 && characterCount <= 520) return 28;
+  return 26;
+}
+
+export function splitScriptureVerses(value) {
+  const marker = "\uE000";
+  let detectedMarker = false;
+  const insertMarker = () => {
+    detectedMarker = true;
+    return marker;
+  };
+  let marked = String(value ?? "")
+    .replace(/<sup\b[^>]*>\s*\d{1,3}[a-z]?\s*<\/sup>/gi, insertMarker)
+    .replace(
+      /<span\b[^>]*class\s*=\s*["'][^"']*\bverse(?:-number|-num|num)?\b[^"']*["'][^>]*>[\s\S]*?<\/span>/gi,
+      insertMarker,
+    )
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, insertMarker);
+  marked = plainText(marked);
+  marked = marked.replace(
+    /(^|\n)\s*\d{1,3}[a-z]?(?:[.:])?\s+(?=\p{L}|["'“‘])/gu,
+    (_match, prefix) => `${prefix}${insertMarker()}`,
+  );
+  marked = marked.replace(
+    /([.!?;:])\s+\d{1,3}[a-z]?(?:[.:])?\s+(?=[A-Z“‘])/g,
+    (_match, punctuation) => `${punctuation} ${insertMarker()}`,
+  );
+
+  const sourceUnits = detectedMarker
+    ? marked.split(marker)
+    : marked.split(/\n\s*\n+/);
+  return sourceUnits
+    .map((verse) => verse.replace(/\s+/g, " ").trim())
+    .map((verse) => verse.replace(/^\d{1,3}[a-z]?(?:[.:])?\s+/, ""))
+    .filter(Boolean);
+}
+
+export function scriptureSlideFontSize(value) {
+  const length = plainText(value).replace(/\s+/g, " ").trim().length;
+  if (length <= 345) return 40;
+  if (length <= 400) return 34;
+  if (length <= 470) return 32;
+  if (length <= 550) return 30;
+  if (length <= 650) return 28;
+  if (length <= 760) return 26;
+  if (length <= 900) return 24;
+  if (length <= 1050) return 22;
+  return 20;
+}
+
+export function splitScriptureSlideTexts(value, maxGroupChars = 430) {
+  const verses = splitScriptureVerses(value);
+  const chunks = [];
+  let current = [];
+  for (const verse of verses) {
+    const candidate = [...current, verse].join(" ");
+    if (current.length && candidate.length > maxGroupChars) {
+      const text = current.join(" ");
+      chunks.push({ text, fontSize: scriptureSlideFontSize(text) });
+      current = [verse];
+    } else {
+      current.push(verse);
+    }
+  }
+  if (current.length) {
+    const text = current.join(" ");
+    chunks.push({ text, fontSize: scriptureSlideFontSize(text) });
+  }
+  return chunks;
 }
 
 export function splitHymnSlideTexts(value, maxChars = 240, maxLines = 7) {
+  const { verses, refrain } = hymnSections(value);
+  if (!verses.length) return [];
   const slides = [];
-  for (const verse of splitHymnVerses(value)) {
-    const lines = verse.split("\n").map((line) => line.trim()).filter(Boolean);
-    const fittedLines = lines.flatMap((line) => (
-      line.length > maxChars ? splitProse(line, maxChars) : [line]
-    ));
-    let current = [];
-    for (const line of fittedLines) {
-      const candidate = [...current, line].join("\n");
-      if (current.length && (current.length >= maxLines || candidate.length > maxChars)) {
-        slides.push(current.join("\n"));
-        current = [line];
-      } else {
-        current.push(line);
+  if (!refrain) {
+    for (const verse of verses) {
+      const lines = verse.split("\n").map((line) => line.trim()).filter(Boolean);
+      for (const chunk of splitHymnLines(lines, maxChars, maxLines)) {
+        slides.push(chunk.join("\n"));
       }
     }
-    if (current.length) slides.push(current.join("\n"));
+    return slides;
+  }
+
+  const refrainLines = refrain.split("\n").map((line) => line.trim()).filter(Boolean);
+  const maxTotalLines = Math.max(maxLines, 14);
+  const maxTotalChars = Math.max(maxChars, 520);
+  const maxVerseLines = Math.max(1, maxTotalLines - refrainLines.length - 1);
+  const maxVerseChars = Math.max(80, maxTotalChars - refrain.length - 2);
+  for (const verse of verses) {
+    const lines = verse.split("\n").map((line) => line.trim()).filter(Boolean);
+    for (const chunk of splitHymnLines(lines, maxVerseChars, maxVerseLines)) {
+      slides.push(formatVerseAndRefrain(chunk, refrainLines, maxTotalLines));
+    }
   }
   return slides;
 }
@@ -310,6 +433,25 @@ function replaceLiteral(search, replacement) {
 
 function setElementText(shapeName, text) {
   return (slide) => slide.modifyElement(shapeName, [modify.setText(text)]);
+}
+
+function setFontSize(fontSize) {
+  const size = String(Math.round(fontSize * 100));
+  return (element) => {
+    for (const tag of ["a:rPr", "a:defRPr", "a:endParaRPr"]) {
+      const nodes = element.getElementsByTagName(tag);
+      for (let index = 0; index < nodes.length; index += 1) {
+        nodes.item(index)?.setAttribute("sz", size);
+      }
+    }
+  };
+}
+
+function setElementTextAndFont(shapeName, text, fontSize) {
+  return (slide) => slide.modifyElement(
+    shapeName,
+    [modify.setText(text), setFontSize(fontSize)],
+  );
 }
 
 function replaceElementText(shapeName, replacements) {
@@ -359,7 +501,11 @@ function addHymnVerses(presentation, text, sourceSlide) {
   const verses = splitHymnSlideTexts(text);
   if (!verses.length) throw new Error("Each Grace hymn needs at least one verse for the PowerPoint.");
   for (const verse of verses) {
-    addSlide(presentation, sourceSlide, setElementText("Title 1", verse));
+    addSlide(
+      presentation,
+      sourceSlide,
+      setElementTextAndFont("Title 1", verse, hymnSlideFontSize(verse)),
+    );
   }
 }
 
@@ -390,8 +536,8 @@ export async function generatePresentation(blob, outputPath) {
   const callChunks = splitProse(largePrint.call_to_worship_text, 340);
   const memoryReference = requireText(weekly.memory_verse_ref, "Memory Verse reference");
   const memoryChunks = splitProse(memoryVerseText(weekly.memory_verse_text), 300);
-  const firstLessonChunks = splitProse(largePrint.first_lesson_text, 315);
-  const secondLessonChunks = splitProse(largePrint.second_lesson_text, 315);
+  const firstLessonChunks = splitScriptureSlideTexts(largePrint.first_lesson_text);
+  const secondLessonChunks = splitScriptureSlideTexts(largePrint.second_lesson_text);
   if (!callChunks.length) throw new Error("Call to Worship full text is required before generating the PowerPoint.");
   if (!memoryChunks.length) throw new Error("Memory Verse text is required before generating the PowerPoint.");
   if (!firstLessonChunks.length || !secondLessonChunks.length) {
@@ -489,7 +635,7 @@ export async function generatePresentation(blob, outputPath) {
           ["Old Testament Lesson", firstHeading],
           ["Job 38:4-18", firstReference],
         ]),
-        setElementText("Content Placeholder 2", chunk),
+        setElementTextAndFont("Content Placeholder 2", chunk.text, chunk.fontSize),
       ),
     );
   }
@@ -512,7 +658,7 @@ export async function generatePresentation(blob, outputPath) {
           ["Gospel Lesson", secondHeading],
           ["Matthew 14:22-33", secondReference],
         ]),
-        setElementText("Content Placeholder 2", chunk),
+        setElementTextAndFont("Content Placeholder 2", chunk.text, chunk.fontSize),
       ),
     );
   }

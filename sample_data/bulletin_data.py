@@ -78,20 +78,20 @@ WEEKLY = {
         ),
         "first_lesson_label": "Epistle Lesson",
         "first_lesson_text": (
-            "Peter, standing up with the eleven, lifted up his voice and said: "
-            "Jesus of Nazareth, a man approved of God among you by miracles and "
+            "<sup>14</sup>Peter, standing up with the eleven, lifted up his voice and said: "
+            "<sup>22</sup>Jesus of Nazareth, a man approved of God among you by miracles and "
             "wonders and signs, was delivered by the determinate counsel and "
-            "foreknowledge of God. This Jesus hath God raised up, whereof we all "
-            "are witnesses. Therefore let all the house of Israel know assuredly, "
+            "foreknowledge of God. <sup>32</sup>This Jesus hath God raised up, whereof we all "
+            "are witnesses. <sup>36</sup>Therefore let all the house of Israel know assuredly, "
             "that God hath made that same Jesus both Lord and Christ."
         ),
         "second_lesson_label": "Gospel Lesson",
         "second_lesson_text": (
-            "Then the eleven disciples went away into Galilee, into a mountain "
+            "<sup>16</sup>Then the eleven disciples went away into Galilee, into a mountain "
             "where Jesus had appointed them. And Jesus came and spake unto them, "
-            "saying, All power is given unto me in heaven and in earth. Go ye "
+            "<sup>18</sup>saying, All power is given unto me in heaven and in earth. <sup>19</sup>Go ye "
             "therefore, and teach all nations, baptizing them in the name of the "
-            "Father, and of the Son, and of the Holy Ghost; and, lo, I am with "
+            "Father, and of the Son, and of the Holy Ghost; <sup>20</sup>and, lo, I am with "
             "you alway, even unto the end of the world. Amen."
         ),
         "sermon_hymn_text": (
