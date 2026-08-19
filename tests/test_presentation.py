@@ -231,8 +231,58 @@ def test_long_hymn_stanzas_are_split_without_losing_text():
         for line in range(1, 13)
     )
     script = (
+        'import { hymnSlideFontSize, splitHymnSlideTexts } '
+        'from "./scripts/generate_grace_presentation.mjs";'
+        f"const chunks = splitHymnSlideTexts({json.dumps(stanza)});"
+        "console.log(JSON.stringify({ chunks, sizes: chunks.map(hymnSlideFontSize) }));"
+    )
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    output = json.loads(result.stdout)
+    chunks = output["chunks"]
+
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 650 for chunk in chunks)
+    assert all(size >= 26 for size in output["sizes"])
+    assert " ".join("\n".join(chunks).split()) == " ".join(stanza.split())
+
+
+def test_readable_hymn_stanza_stays_on_one_slide():
+    stanza = "\n".join(
+        ["1 A readable hymn line."]
+        + [f"Another readable hymn line {line}." for line in range(2, 17)]
+    )
+    script = (
+        'import { hymnSlideFontSize, splitHymnSlideTexts } '
+        'from "./scripts/generate_grace_presentation.mjs";'
+        f"const slides = splitHymnSlideTexts({json.dumps(stanza)});"
+        "console.log(JSON.stringify({ slides, sizes: slides.map(hymnSlideFontSize) }));"
+    )
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    output = json.loads(result.stdout)
+
+    assert output["slides"] == [stanza]
+    assert output["sizes"] == [26]
+
+
+def test_hymn_split_rebalances_a_single_line_continuation():
+    stanza = "\n".join(f"Line {line}" for line in range(1, 11))
+    script = (
         'import { splitHymnSlideTexts } from "./scripts/generate_grace_presentation.mjs";'
-        f"console.log(JSON.stringify(splitHymnSlideTexts({json.dumps(stanza)})));"
+        f"console.log(JSON.stringify(splitHymnSlideTexts({json.dumps(stanza)}, 240, 9)));"
     )
     result = subprocess.run(
         [shutil.which("node"), "--input-type=module", "-e", script],
@@ -244,9 +294,33 @@ def test_long_hymn_stanzas_are_split_without_losing_text():
     )
     chunks = json.loads(result.stdout)
 
-    assert len(chunks) > 1
-    assert all(len(chunk) <= 240 for chunk in chunks)
+    assert [len(chunk.splitlines()) for chunk in chunks] == [8, 2]
     assert " ".join("\n".join(chunks).split()) == " ".join(stanza.split())
+
+
+def test_have_thine_own_way_keeps_each_eight_line_verse_on_one_slide():
+    script = """
+import fs from "node:fs";
+import { hymnSlideFontSize, splitHymnSlideTexts } from "./scripts/generate_grace_presentation.mjs";
+const library = JSON.parse(fs.readFileSync("static/data/ambassador_hymns.json", "utf8"));
+const slides = splitHymnSlideTexts(library["460"]);
+console.log(JSON.stringify({ slides, sizes: slides.map(hymnSlideFontSize) }));
+"""
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    output = json.loads(result.stdout)
+
+    assert len(output["slides"]) == 4
+    assert all(len(slide.splitlines()) == 8 for slide in output["slides"])
+    assert output["sizes"] == [36, 36, 36, 36]
+    assert output["slides"][1].endswith("As in Thy presence\nHumbly I bow.")
+    assert output["slides"][2].endswith("Touch me and heal me,\nSavior divine!")
 
 
 def test_hymn_refrain_is_repeated_after_every_verse():

@@ -283,6 +283,19 @@ function splitHymnLines(lines, maxChars, maxLines) {
     }
   }
   if (current.length) slides.push(current);
+
+  // Avoid a single-line continuation slide. Moving the prior line forward
+  // preserves the verse wording and usually keeps its final poetic couplet
+  // together. Respect the character limit in the unusual case of two very
+  // long wrapped lines.
+  if (slides.length > 1 && slides.at(-1).length === 1) {
+    const previous = slides.at(-2);
+    const orphan = slides.at(-1);
+    const rebalanced = [previous.at(-1), orphan[0]].join("\n");
+    if (previous.length > 1 && rebalanced.length <= maxChars) {
+      orphan.unshift(previous.pop());
+    }
+  }
   return slides;
 }
 
@@ -371,7 +384,7 @@ export function splitScriptureSlideTexts(value, maxGroupChars = 430) {
   return chunks;
 }
 
-export function splitHymnSlideTexts(value, maxChars = 240, maxLines = 7) {
+export function splitHymnSlideTexts(value, maxChars = 650, maxLines = 16) {
   const { verses, refrain } = hymnSections(value);
   if (!verses.length) return [];
   const slides = [];
