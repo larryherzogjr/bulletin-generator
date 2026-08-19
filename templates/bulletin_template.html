@@ -115,7 +115,7 @@
     <div class="label-tight">CONFESSION OF SIN</div>
 
     <div class="para"><span class="lead">MEMORY VERSE:</span>
-      {% if w.memory_verse_ref %}{{ w.memory_verse_ref }} &ndash; {% endif %}{{ w.memory_verse_text }}</div>
+      {% if w.memory_verse_ref %}{{ w.memory_verse_ref }} &ndash; {% endif %}{{ w.memory_verse_text|scripture_visible }}</div>
 
     <div class="para lessons"><span class="lead">SCRIPTURE LESSONS</span><span class="lesson-list">{% for ref, pgs in w.scripture_lessons %}{{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}{% endfor %}</span></div>
 

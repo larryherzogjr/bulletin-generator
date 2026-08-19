@@ -1,7 +1,7 @@
 # Deploying the bulletin generator
 
 Production runs Gunicorn under systemd on a Linux VM. Gunicorn binds only to
-`127.0.0.1:8000`; nginx or Caddy should provide HTTPS, LAN routing, and
+`127.0.0.1:5005`; nginx or Caddy should provide HTTPS, LAN routing, and
 authentication. The application itself intentionally has no user accounts.
 
 The checkout and virtual environment are owned by the sudo-capable deployment
@@ -40,8 +40,36 @@ sudo find /opt/bulletin-generator -type d -exec chmod g+s {} +
 sudo cp deploy/bulletin.service /etc/systemd/system/bulletin.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now bulletin
-curl -fsS http://127.0.0.1:8000/healthz && echo OK
+curl -fsS http://127.0.0.1:5005/healthz && echo OK
 ```
+
+## Automatic ESV Scripture
+
+Register the church's noncommercial application at
+[api.esv.org](https://api.esv.org/), then place the key in the root-owned
+environment file referenced by the systemd unit. Do not commit the key:
+
+```sh
+sudo install -m 600 -o root -g root /dev/null /etc/bulletin-generator.env
+sudoedit /etc/bulletin-generator.env
+```
+
+Add exactly this setting, using the key issued by Crossway:
+
+```text
+ESV_API_KEY=your-key-from-Crossway
+```
+
+Then restart the service:
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl restart bulletin
+```
+
+The application stores only the Scripture references and source selection for
+automatic ESV weeks. Passage text is fetched transiently for editor previews
+and generated files, and is not retained in SQLite.
 
 The version constraints validated by CI are applied automatically through
 `requirements-dev.txt`. Do not install unconstrained dependencies in the
@@ -142,4 +170,4 @@ limit is 1 MiB (`BULLETIN_MAX_CONTENT_LENGTH=1048576`).
 | Update refuses to run | `git status`; production tracked files must be clean |
 | Preflight fails | Run pytest and `manage.py check --render` manually |
 | Rollback also fails | Inspect the journal and verify DB ownership/path |
-| Port conflict | `sudo ss -ltnp \| grep :8000` |
+| Port conflict | `sudo ss -ltnp \| grep :5005` |

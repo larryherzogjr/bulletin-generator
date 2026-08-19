@@ -14,6 +14,7 @@ def test_blank_blob_has_complete_versioned_shape():
     assert blob["schema_version"] == CURRENT_SCHEMA_VERSION
     assert set(blob) == {"schema_version", "weekly", "standing", "insert"}
     assert blob["weekly"]["confession_of_faith"] == CREEDS[0]
+    assert blob["weekly"]["scripture_text_source"] == "manual"
     assert len(blob["insert"]["prayer"]) == 3
     assert "notes_heading" in blob["insert"]
     assert set(blob["weekly"]["large_print"]) == {
@@ -88,3 +89,10 @@ def test_newer_schema_is_rejected_instead_of_discarded():
 
     with pytest.raises(SchemaVersionError, match="newer|supports"):
         normalize_blob(blob)
+
+
+def test_invalid_scripture_source_falls_back_to_manual():
+    blob = blank_blob()
+    blob["weekly"]["scripture_text_source"] = "unknown"
+
+    assert normalize_blob(blob)["weekly"]["scripture_text_source"] == "manual"

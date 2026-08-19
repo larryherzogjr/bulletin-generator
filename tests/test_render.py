@@ -164,6 +164,22 @@ def test_rich_text_allowlist_escapes_non_formatting_markup(sample_blob):
     assert "&lt;script&gt;bad()&lt;/script&gt;" in html
 
 
+def test_generated_scripture_hides_verse_numbers_but_keeps_esv_attribution(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["memory_verse_text"] = "<sup>6</sup>Humble yourselves. (ESV)"
+    weekly["large_print"]["first_lesson_text"] = (
+        "<sup>14</sup>Peter stood and spoke. (ESV)"
+    )
+
+    bulletin_html = render_bulletin_html(weekly, sample_blob["standing"])
+    large_print_html = render_large_print_content_html(weekly, sample_blob["standing"])
+
+    assert "<sup>6</sup>" not in bulletin_html
+    assert "Humble yourselves. (ESV)" in bulletin_html
+    assert "<sup>14</sup>" not in large_print_html
+    assert "Peter stood and spoke. (ESV)" in large_print_html
+
+
 def test_bulletin_overflow_fails_closed(sample_blob):
     weekly = deepcopy(sample_blob["weekly"])
     weekly["grace_events"] = [

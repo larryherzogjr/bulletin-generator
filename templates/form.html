@@ -16,6 +16,8 @@
 
   <form id="week-form" data-week-id="{{ week.id }}"
         data-save-url="{{ url_for('save_week', week_id=week.id) }}"
+        data-esv-url="{{ url_for('esv_passages') }}"
+        data-esv-configured="{{ 'true' if esv_configured else 'false' }}"
         data-hymn-library-url="{{ url_for('static', filename='data/ambassador_hymns.json') }}">
 
     <div class="formatting-note">
@@ -179,6 +181,21 @@
     <!-- ===================== READINGS ===================== -->
     <section class="card">
       <h2>Scripture Lessons</h2>
+      <div class="esv-controls">
+        <label>Full-text source
+          <select id="scripture-text-source" data-key="weekly.scripture_text_source">
+            <option value="manual" {% if data.weekly.scripture_text_source == "manual" %}selected{% endif %}>Manual text</option>
+            <option value="esv" {% if data.weekly.scripture_text_source == "esv" %}selected{% endif %}>Automatic ESV</option>
+          </select>
+        </label>
+        <button type="button" class="btn" id="load-esv-scripture">Load / refresh ESV text</button>
+        <span id="esv-lookup-status" class="esv-lookup-status" aria-live="polite"></span>
+      </div>
+      <p class="section-note">
+        Automatic ESV uses the Call to Worship, Memory Verse, and first two lesson
+        references. The official wording is read-only, verse numbers are hidden in
+        generated files, and the lesson headings are inferred automatically.
+      </p>
       <div class="rows" data-list="weekly.scripture_lessons" data-cols="ref,pages">
         {% for ref, pages in data.weekly.scripture_lessons %}
         <div class="row pair">
@@ -197,9 +214,9 @@
       <p class="section-note">
         Entering a Grace hymn number loads all verses from the Ambassador library.
         The loaded text remains editable so you can choose which verses to print.
-        Paste the complete Psalm and lesson text here as before. Keep Scripture
-        verse numbers in the pasted lesson text; the PowerPoint uses them only to
-        find clean slide breaks and hides them from the projected text.
+        In manual Scripture mode, paste the complete Psalm and lesson text here as
+        before. Keep Scripture verse numbers in the pasted lesson text; generated
+        files use them only to find clean verse boundaries and do not display them.
       </p>
 
       <label>Call to Worship (Psalm) - full text
@@ -248,6 +265,13 @@
         </label>
         {% endfor %}
       </details>
+
+      <p class="esv-copyright">
+        Scripture quotations marked “ESV” are from the ESV® Bible (The Holy Bible,
+        English Standard Version®), © 2001 by Crossway, a publishing ministry of
+        Good News Publishers. Used by permission. All rights reserved.
+        <a href="https://www.esv.org/" target="_blank" rel="noopener">ESV.org</a>
+      </p>
     </section>
 
     <!-- ===================== EVENTS ===================== -->

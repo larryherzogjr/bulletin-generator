@@ -533,9 +533,9 @@ export async function generatePresentation(blob, outputPath) {
   const secondHeading = lessonHeading(secondReference);
 
   const callReference = requireText(weekly.call_to_worship, "Call to Worship reference");
-  const callChunks = splitProse(largePrint.call_to_worship_text, 340);
+  const callChunks = splitScriptureSlideTexts(largePrint.call_to_worship_text, 340);
   const memoryReference = requireText(weekly.memory_verse_ref, "Memory Verse reference");
-  const memoryChunks = splitProse(memoryVerseText(weekly.memory_verse_text), 300);
+  const memoryChunks = splitScriptureSlideTexts(weekly.memory_verse_text, 300);
   const firstLessonChunks = splitScriptureSlideTexts(largePrint.first_lesson_text);
   const secondLessonChunks = splitScriptureSlideTexts(largePrint.second_lesson_text);
   if (!callChunks.length) throw new Error("Call to Worship full text is required before generating the PowerPoint.");
@@ -571,7 +571,13 @@ export async function generatePresentation(blob, outputPath) {
     COMMON.callTitle,
     replaceElementText("Rectangle 3", [["Psalm 18:1-6", callReference]]),
   );
-  for (const chunk of callChunks) addSlide(presentation, COMMON.callBody, setElementText("Content Placeholder 2", chunk));
+  for (const chunk of callChunks) {
+    addSlide(
+      presentation,
+      COMMON.callBody,
+      setElementTextAndFont("Content Placeholder 2", chunk.text, chunk.fontSize),
+    );
+  }
   addSlide(presentation, COMMON.postCallBlank);
 
   addHymnTitle(
@@ -611,7 +617,7 @@ export async function generatePresentation(blob, outputPath) {
         replaceElementText("Title 1", [["Haggai 1:5", memoryReference]]),
         replaceElementText("Content Placeholder 2", [[
           "Now, therefore, thus says the Lord of hosts: Consider your ways. ",
-          chunk,
+          chunk.text,
         ]]),
       ),
     );

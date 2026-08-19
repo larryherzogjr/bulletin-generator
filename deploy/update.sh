@@ -17,7 +17,7 @@ SERVICE="${SERVICE:-bulletin}"
 SERVICE_USER="${SERVICE_USER:-bulletin}"
 SERVICE_GROUP="${SERVICE_GROUP:-bulletin}"
 DB_PATH="${BULLETIN_DB:-/var/lib/bulletin/bulletin.sqlite3}"
-HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:8000/healthz}"
+HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:5005/healthz}"
 UNIT_DEST="${UNIT_DEST:-/etc/systemd/system/${SERVICE}.service}"
 
 cd "$APP_DIR"

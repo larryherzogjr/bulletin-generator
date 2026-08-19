@@ -108,9 +108,10 @@ def cmd_render(conn, args) -> int:
         render_large_print_pdf,
     )
     from presentation import render_grace_presentation
+    from esv import hydrate_esv_scripture
     out = BASE_DIR / "out"
     out.mkdir(exist_ok=True)
-    blob = normalize_blob(week["data"])
+    blob = hydrate_esv_scripture(normalize_blob(week["data"]))
     b = out / f"bulletin_{week['id']}.pdf"
     i = out / f"insert_{week['id']}.pdf"
     lp = out / f"large_print_{week['id']}.pdf"
@@ -169,6 +170,7 @@ def cmd_check(conn, args) -> int:
         normalized.append(normalize_blob(week["data"]))
 
     if "--render" in args:
+        from esv import hydrate_esv_scripture
         from render import (
             render_bulletin_pdf,
             render_insert_pdf,
@@ -180,6 +182,7 @@ def cmd_check(conn, args) -> int:
         if normalized:
             targets.append((f"latest week {weeks[0]['id']}", normalized[0]))
         for label, blob in targets:
+            blob = hydrate_esv_scripture(blob)
             render_bulletin_pdf(blob["weekly"], blob["standing"])
             render_insert_pdf(blob["insert"])
             render_large_print_pdf(blob["weekly"], blob["standing"], blob["insert"])

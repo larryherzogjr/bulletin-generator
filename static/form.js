@@ -22,6 +22,9 @@
   let hymnLibraryPromise = null;
   const pendingHymnLoads = new Set();
   const scheduledHymnControls = new Set();
+  let esvLookupPromise = null;
+  let esvLookupTimer = null;
+  let esvRequestVersion = 0;
 
   // ---- helpers ----------------------------------------------------------
   function setPath(obj, path, value) {
@@ -254,6 +257,173 @@
       }
     });
   });
+
+  // ---- official ESV Scripture lookup ------------------------------------
+  // The browser sends references only. The server owns the API key, returns
+  // temporary text for preview, and fetches the passages again for rendering.
+  const esvSource = form.querySelector("#scripture-text-source");
+  const esvButton = form.querySelector("#load-esv-scripture");
+  const esvStatus = form.querySelector("#esv-lookup-status");
+  const esvTextTargets = [
+    form.querySelector('[data-key="weekly.large_print.call_to_worship_text"]'),
+    form.querySelector('[data-key="weekly.memory_verse_text"]'),
+    form.querySelector('[data-key="weekly.large_print.first_lesson_text"]'),
+    form.querySelector('[data-key="weekly.large_print.second_lesson_text"]'),
+  ];
+  const esvLabelTargets = [
+    form.querySelector('[data-key="weekly.large_print.first_lesson_label"]'),
+    form.querySelector('[data-key="weekly.large_print.second_lesson_label"]'),
+  ];
+
+  function setEsvStatus(message, className) {
+    esvStatus.textContent = message;
+    esvStatus.className = "esv-lookup-status" + (className ? " " + className : "");
+  }
+
+  function scriptureReferences() {
+    const lessonRows = Array.from(
+      form.querySelectorAll('[data-list="weekly.scripture_lessons"] > .row')
+    );
+    return [
+      form.querySelector('[data-key="weekly.call_to_worship"]').value.trim(),
+      form.querySelector('[data-key="weekly.memory_verse_ref"]').value.trim(),
+      lessonRows[0] ? lessonRows[0].querySelector('[data-col="0"]').value.trim() : "",
+      lessonRows[1] ? lessonRows[1].querySelector('[data-col="0"]').value.trim() : "",
+    ];
+  }
+
+  function syncEsvMode() {
+    const automatic = esvSource.value === "esv";
+    esvButton.disabled = false;
+    esvTextTargets.concat(esvLabelTargets).forEach(function (target) {
+      target.readOnly = automatic;
+    });
+    esvButton.textContent = automatic
+      ? "Load / refresh ESV text"
+      : "Use automatic ESV";
+    if (!automatic) setEsvStatus("Manual Scripture text is stored with this week.", "");
+  }
+
+  async function loadEsvScripture() {
+    if (esvSource.value !== "esv") return false;
+    if (form.dataset.esvConfigured !== "true") {
+      setEsvStatus("Automatic ESV is not configured on the server. Set ESV_API_KEY.", "error");
+      return false;
+    }
+    const references = scriptureReferences();
+    const missing = [
+      "Call to Worship reference",
+      "Memory Verse reference",
+      "first lesson reference",
+      "second lesson reference",
+    ].filter(function (_label, index) { return !references[index]; });
+    if (missing.length) {
+      setEsvStatus("Add the " + missing.join(", ") + " before loading ESV text.", "error");
+      return false;
+    }
+
+    const requestVersion = ++esvRequestVersion;
+    const referenceSnapshot = JSON.stringify(references);
+    esvButton.disabled = true;
+    setEsvStatus("Loading official ESV text…", "");
+
+    let lookup;
+    lookup = (async function () {
+      try {
+        const response = await fetch(form.dataset.esvUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ references: references }),
+        });
+        let result;
+        try {
+          result = await response.json();
+        } catch (_err) {
+          result = { ok: false, error: "ESV lookup failed (HTTP " + response.status + ")" };
+        }
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || "ESV lookup failed");
+        }
+        if (
+          requestVersion !== esvRequestVersion ||
+          referenceSnapshot !== JSON.stringify(scriptureReferences()) ||
+          esvSource.value !== "esv"
+        ) {
+          return false;
+        }
+        if (!Array.isArray(result.passages) || result.passages.length !== 4) {
+          throw new Error("The ESV lookup returned an incomplete response.");
+        }
+        esvTextTargets.forEach(function (target, index) {
+          target.value = result.passages[index].text;
+        });
+        esvLabelTargets[0].value = result.passages[2].heading;
+        esvLabelTargets[1].value = result.passages[3].heading;
+        setEsvStatus(
+          "Loaded four official ESV passages. They will be refreshed when files are generated.",
+          "loaded"
+        );
+        return true;
+      } catch (err) {
+        if (requestVersion === esvRequestVersion) {
+          setEsvStatus("ESV text could not be loaded. " + err.message, "error");
+        }
+        return false;
+      } finally {
+        if (requestVersion === esvRequestVersion) esvButton.disabled = false;
+      }
+    })();
+    esvLookupPromise = lookup;
+    try {
+      return await lookup;
+    } finally {
+      if (esvLookupPromise === lookup) esvLookupPromise = null;
+    }
+  }
+
+  function scheduleEsvLookup() {
+    if (esvSource.value !== "esv") return;
+    if (esvLookupTimer !== null) clearTimeout(esvLookupTimer);
+    esvLookupTimer = setTimeout(function () {
+      esvLookupTimer = null;
+      loadEsvScripture();
+    }, 350);
+  }
+
+  esvButton.addEventListener("click", function () {
+    if (esvSource.value !== "esv") {
+      esvSource.value = "esv";
+      esvSource.dispatchEvent(new Event("input", { bubbles: true }));
+      syncEsvMode();
+    }
+    loadEsvScripture();
+  });
+  esvSource.addEventListener("change", function () {
+    esvRequestVersion += 1;
+    syncEsvMode();
+    if (esvSource.value === "esv") loadEsvScripture();
+  });
+  form.addEventListener("change", function (event) {
+    const target = event.target;
+    if (
+      target.matches('[data-key="weekly.call_to_worship"]') ||
+      target.matches('[data-key="weekly.memory_verse_ref"]') ||
+      (target.matches('[data-col="0"]') && target.closest('[data-list="weekly.scripture_lessons"]'))
+    ) {
+      scheduleEsvLookup();
+    }
+  });
+  form.addEventListener("click", function (event) {
+    if (
+      event.target.matches('[data-target="weekly.scripture_lessons"]') ||
+      (event.target.matches(".row-del") && event.target.closest('[data-list="weekly.scripture_lessons"]'))
+    ) {
+      scheduleEsvLookup();
+    }
+  });
+
+  syncEsvMode();
+  if (esvSource.value === "esv") loadEsvScripture();
 
   // ---- optional sections: reflect enabled state visually -----------------
   function syncOptional(block) {
@@ -640,29 +810,39 @@
     }
   }
 
-  async function waitForHymnLoads() {
+  async function waitForAutomaticLookups() {
     // A save can occur during the short typing debounce. Flush those lookups
-    // first so the hymn number and populated lyrics are saved atomically.
+    // first so references and their selected source are saved atomically.
     Array.from(scheduledHymnControls).forEach(runAutomaticHymnLookup);
-    while (pendingHymnLoads.size) {
-      await Promise.all(Array.from(pendingHymnLoads));
+    if (esvLookupTimer !== null) {
+      clearTimeout(esvLookupTimer);
+      esvLookupTimer = null;
+      loadEsvScripture();
+    }
+    while (pendingHymnLoads.size || esvLookupPromise) {
+      const lookups = Array.from(pendingHymnLoads);
+      if (esvLookupPromise) lookups.push(esvLookupPromise);
+      await Promise.all(lookups);
     }
   }
 
-  async function saveAfterHymnLoads() {
-    if (pendingHymnLoads.size || scheduledHymnControls.size) {
-      statusEl.textContent = "Finishing hymn lookup…";
+  async function saveAfterAutomaticLookups() {
+    if (
+      pendingHymnLoads.size || scheduledHymnControls.size ||
+      esvLookupPromise || esvLookupTimer !== null
+    ) {
+      statusEl.textContent = "Finishing automatic lookups…";
       statusEl.className = "saving";
       saveBtn.disabled = true;
       generateLink.setAttribute("aria-busy", "true");
     }
-    await waitForHymnLoads();
+    await waitForAutomaticLookups();
     return performSave(revision);
   }
 
   async function save() {
     if (savePromise) return savePromise;
-    savePromise = saveAfterHymnLoads();
+    savePromise = saveAfterAutomaticLookups();
     try {
       return await savePromise;
     } finally {

@@ -13,6 +13,7 @@ Shape (three sections, matching the render functions):
   weekly:
     liturgical_day, date, call_to_worship, order_of_service,
     confession_of_faith (one of CREEDS), preacher, sermon_text,
+    scripture_text_source ("manual" or transient "esv"),
     memory_verse_ref, memory_verse_text,                  # shared w/ insert
     grace_events_banner, zion_events_banner               # str
     prelude:           [[who, names], ...]
@@ -50,7 +51,7 @@ from copy import deepcopy
 # Stored blobs without a version are legacy version 0. Normalizing them applies
 # the existing prayer/hymn migrations and upgrades them to this version. A blob
 # from a newer application is rejected instead of silently losing unknown data.
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 class SchemaVersionError(ValueError):
@@ -203,6 +204,9 @@ def blank_blob() -> dict:
             "confession_of_faith": CREEDS[0],
             "memory_verse_ref": "",
             "memory_verse_text": "",
+            # Manual text is stored with the week. Automatic ESV text is
+            # fetched transiently from Crossway and never persisted.
+            "scripture_text_source": "manual",
             "scripture_lessons": [],
             # Optional sections. Each has an `enabled` flag; when off they don't
             # render at all. Baptism/Confirmation carry a free-form line (names);
@@ -426,7 +430,20 @@ def _migrate_v1_to_v2(migrated: dict) -> dict:
     return migrated
 
 
-_MIGRATIONS = {0: _migrate_v0_to_v1, 1: _migrate_v1_to_v2}
+def _migrate_v2_to_v3(migrated: dict) -> dict:
+    """Keep existing weeks on their stored/manual Scripture wording."""
+    weekly = migrated.get("weekly")
+    if isinstance(weekly, dict):
+        weekly.setdefault("scripture_text_source", "manual")
+    migrated["schema_version"] = 3
+    return migrated
+
+
+_MIGRATIONS = {
+    0: _migrate_v0_to_v1,
+    1: _migrate_v1_to_v2,
+    2: _migrate_v2_to_v3,
+}
 
 
 def migrate_blob(blob: dict) -> dict:
@@ -467,6 +484,8 @@ def normalize_blob(blob: dict) -> dict:
               "grace_events_banner", "between_events",
               "zion_events_banner", "below_events"):
         w[k] = _s(w_in.get(k))
+    source = _s(w_in.get("scripture_text_source")).lower()
+    w["scripture_text_source"] = source if source in {"manual", "esv"} else "manual"
     # Confession of Faith: one of CREEDS, or "" for "None" (renders the heading
     # alone, no "~ Creed" suffix). Any other value falls back to the default.
     creed = _s(w_in.get("confession_of_faith"))

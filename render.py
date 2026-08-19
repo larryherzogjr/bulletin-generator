@@ -51,6 +51,17 @@ _RICH_RE = re.compile(
     r"&lt;\s*(/?)\s*(%s)\s*/?\s*&gt;" % "|".join(_RICH_TAGS), re.IGNORECASE
 )
 
+_SCRIPTURE_VERSE_TAG = re.compile(
+    r"<sup\b[^>]*>\s*\d{1,3}[a-z]?\s*</sup>", re.IGNORECASE
+)
+_SCRIPTURE_VERSE_SPAN = re.compile(
+    r"<span\b[^>]*class\s*=\s*['\"][^'\"]*\bverse(?:-number|-num|num)?\b"
+    r"[^'\"]*['\"][^>]*>[\s\S]*?</span>",
+    re.IGNORECASE,
+)
+_SCRIPTURE_BRACKET_NUMBER = re.compile(r"\[\s*\d{1,3}[a-z]?\s*\]", re.IGNORECASE)
+_SCRIPTURE_SUPERSCRIPT_NUMBER = re.compile(r"[⁰¹²³⁴⁵⁶⁷⁸⁹]+")
+
 
 def rich(value) -> Markup:
     """Escape user text, then re-enable an allowlist of inline formatting tags.
@@ -64,6 +75,16 @@ def rich(value) -> Markup:
     s = s.replace("<", "&lt;").replace(">", "&gt;")
     s = _RICH_RE.sub(lambda m: "<%s%s>" % (m.group(1), m.group(2).lower()), s)
     return Markup(s)
+
+
+def scripture_visible(value) -> Markup:
+    """Render Scripture wording while keeping verse markers out of print."""
+    text = str(value or "")
+    text = _SCRIPTURE_VERSE_TAG.sub("", text)
+    text = _SCRIPTURE_VERSE_SPAN.sub("", text)
+    text = _SCRIPTURE_BRACKET_NUMBER.sub("", text)
+    text = _SCRIPTURE_SUPERSCRIPT_NUMBER.sub("", text)
+    return rich(text)
 
 
 def _finalize(value):
@@ -81,6 +102,7 @@ _env = Environment(
     finalize=_finalize,
 )
 _env.filters["rich"] = rich
+_env.filters["scripture_visible"] = scripture_visible
 
 
 # Shrink-to-fit bounds for the bulletin. The inside must stay on ONE sheet; if a

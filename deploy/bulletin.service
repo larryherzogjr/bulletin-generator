@@ -4,7 +4,7 @@
 #
 # Mirrors the Sermon Broadcaster pattern: a venv-backed gunicorn process behind
 # the homelab LAN, managed by systemd, updated via `git pull`. Coexists with
-# unifi-tools and sermon-broadcaster — this one owns port 8000 (confirmed free).
+# unifi-tools and sermon-broadcaster — this one owns loopback port 5005.
 #
 # Ownership model: the checkout (/opt/bulletin-generator) is owned by the admin
 # user who runs `git pull` (see deploy/update.sh); this service runs as the
@@ -28,13 +28,16 @@ WorkingDirectory=/opt/bulletin-generator
 Environment=BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3
 Environment=BULLETIN_MAX_CONTENT_LENGTH=1048576
 Environment=PYTHONUNBUFFERED=1
+# Store ESV_API_KEY in this root-owned file rather than in the repository or
+# unit. systemd ignores the file until automatic ESV Scripture is configured.
+EnvironmentFile=-/etc/bulletin-generator.env
 
 # 2 workers is plenty for a single secretary; WeasyPrint is CPU-bound per
 # request, so a short pool with a generous timeout suits PDF generation.
 ExecStart=/opt/bulletin-generator/.venv/bin/gunicorn \
     --workers 2 \
     --timeout 120 \
-    --bind 127.0.0.1:8000 \
+    --bind 127.0.0.1:5005 \
     wsgi:application
 
 Restart=on-failure

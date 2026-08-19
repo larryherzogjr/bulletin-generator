@@ -4,6 +4,7 @@ import app as app_module
 import db
 from render import PDFLayoutError
 from presentation import PresentationGenerationError
+from esv import ESVConfigurationError, ESVPassage
 
 
 def _seed(client):
@@ -124,3 +125,59 @@ def test_powerpoint_generation_error_is_actionable(client, monkeypatch):
     assert response.status_code == 422
     assert response.content_type.startswith("text/html")
     assert b"Add two scripture lesson references" in response.data
+
+
+def test_esv_lookup_endpoint_returns_transient_passages(client, monkeypatch):
+    _seed(client)
+
+    def lookup(references):
+        return [
+            ESVPassage(reference, reference, f"<sup>{index}</sup>{reference} text. (ESV)")
+            for index, reference in enumerate(references, start=1)
+        ]
+
+    monkeypatch.setattr(app_module, "lookup_esv_passages", lookup)
+    response = client.post(
+        "/api/esv/passages",
+        json={"references": ["Psalm 8", "John 3:16", "Romans 8:1", "Mark 1:1"]},
+    )
+
+    assert response.status_code == 200
+    passages = response.get_json()["passages"]
+    assert len(passages) == 4
+    assert passages[2]["heading"] == "Epistle Lesson"
+    assert passages[3]["heading"] == "Gospel Lesson"
+    assert passages[0]["text"].endswith("(ESV)")
+
+
+def test_esv_lookup_configuration_error_is_json(client, monkeypatch):
+    _seed(client)
+
+    def fail(_references):
+        raise ESVConfigurationError("Set ESV_API_KEY on the server.")
+
+    monkeypatch.setattr(app_module, "lookup_esv_passages", fail)
+    response = client.post("/api/esv/passages", json={"references": ["Psalm 8"]})
+
+    assert response.status_code == 503
+    assert response.is_json
+    assert "ESV_API_KEY" in response.get_json()["error"]
+
+
+def test_saving_automatic_esv_mode_does_not_store_passage_text(client, sample_blob):
+    week_id = _seed(client)
+    payload = deepcopy(sample_blob)
+    payload["weekly"]["scripture_text_source"] = "esv"
+
+    response = client.post(f"/weeks/{week_id}", json=payload)
+    assert response.status_code == 200
+
+    conn = db.get_connection()
+    try:
+        stored = db.get_week(conn, week_id)["data"]
+    finally:
+        conn.close()
+    assert stored["weekly"]["scripture_text_source"] == "esv"
+    assert stored["weekly"]["memory_verse_text"] == ""
+    assert stored["weekly"]["large_print"]["first_lesson_text"] == ""
+    assert stored["insert"]["memory_verse_text"] == ""

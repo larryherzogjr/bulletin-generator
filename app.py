@@ -8,6 +8,7 @@ Routes
   POST /weeks/<id>/delete     delete a week                  -> redirect to index
   GET  /weeks/<id>/edit       the sectioned edit form
   POST /weeks/<id>            save the form (JSON body)      -> JSON {ok, id}
+  POST /api/esv/passages      transient official ESV lookup  -> JSON passages
   GET  /weeks/<id>/generate   the download screen (three PDFs + Grace PowerPoint)
   GET  /weeks/<id>/bulletin.pdf   [?dl=1 -> attachment]
   GET  /weeks/<id>/insert.pdf     [?dl=1 -> attachment]
@@ -37,6 +38,14 @@ from flask import (
 )
 
 import db
+from esv import (
+    ESVError,
+    esv_is_configured,
+    hydrate_esv_scripture,
+    lesson_heading,
+    lookup_esv_passages,
+    strip_transient_esv_text,
+)
 from presentation import PresentationGenerationError, render_grace_presentation
 from schema import CREEDS, SchemaVersionError, blank_blob, normalize_blob
 from render import (
@@ -115,6 +124,17 @@ def _presentation_error(exc: PresentationGenerationError):
         title="Grace PowerPoint could not be generated",
         message=str(exc),
     ), 422
+
+
+@app.errorhandler(ESVError)
+def _esv_error(exc: ESVError):
+    if request.path.startswith("/api/"):
+        return jsonify(ok=False, error=str(exc)), exc.status_code
+    return render_template(
+        "error.html",
+        title="ESV Scripture text could not be loaded",
+        message=str(exc),
+    ), exc.status_code
 
 
 @app.errorhandler(SchemaVersionError)
@@ -276,6 +296,7 @@ def edit_week(week_id: int):
         week=week,
         data=week["data"],
         creeds=CREEDS,
+        esv_configured=esv_is_configured(),
     )
 
 
@@ -284,7 +305,7 @@ def save_week(week_id: int):
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify(ok=False, error="expected a JSON object"), 400
-    blob = normalize_blob(payload)
+    blob = strip_transient_esv_text(normalize_blob(payload))
     conn = db.get_connection()
     try:
         _get_week_or_404(conn, week_id)
@@ -292,6 +313,38 @@ def save_week(week_id: int):
     finally:
         conn.close()
     return jsonify(ok=True, id=week_id, label=db.derive_label(blob))
+
+
+@app.route("/api/esv/passages", methods=["POST"])
+def esv_passages():
+    payload = request.get_json(silent=True)
+    references = payload.get("references") if isinstance(payload, dict) else None
+    if not isinstance(references, list) or not 1 <= len(references) <= 4:
+        return jsonify(
+            ok=False,
+            error="Send between one and four Scripture references.",
+        ), 400
+    cleaned = []
+    for reference in references:
+        if not isinstance(reference, str) or not reference.strip():
+            return jsonify(ok=False, error="Every Scripture reference is required."), 400
+        if len(reference.strip()) > 120:
+            return jsonify(ok=False, error="A Scripture reference is too long."), 400
+        cleaned.append(reference.strip())
+
+    passages = lookup_esv_passages(cleaned)
+    return jsonify(
+        ok=True,
+        passages=[
+            {
+                "query": passage.query,
+                "canonical": passage.canonical,
+                "text": passage.text,
+                "heading": lesson_heading(reference),
+            }
+            for reference, passage in zip(cleaned, passages)
+        ],
+    )
 
 
 @app.route("/weeks/<int:week_id>/generate")
@@ -312,6 +365,7 @@ def bulletin_pdf(week_id: int):
     finally:
         conn.close()
     d = week["data"]
+    d = hydrate_esv_scripture(d)
     pdf = render_bulletin_pdf(d["weekly"], d["standing"])
     return _pdf_response(pdf, "bulletin", week["label"])
 
@@ -323,7 +377,8 @@ def insert_pdf(week_id: int):
         week = _get_week_or_404(conn, week_id)
     finally:
         conn.close()
-    pdf = render_insert_pdf(week["data"]["insert"])
+    d = hydrate_esv_scripture(week["data"])
+    pdf = render_insert_pdf(d["insert"])
     return _pdf_response(pdf, "insert", week["label"])
 
 
@@ -335,6 +390,7 @@ def large_print_pdf(week_id: int):
     finally:
         conn.close()
     d = week["data"]
+    d = hydrate_esv_scripture(d)
     pdf = render_large_print_pdf(d["weekly"], d["standing"], d["insert"])
     return _pdf_response(pdf, "large-print-booklet", week["label"])
 
@@ -346,7 +402,8 @@ def grace_presentation(week_id: int):
         week = _get_week_or_404(conn, week_id)
     finally:
         conn.close()
-    pptx = render_grace_presentation(week["data"])
+    data = hydrate_esv_scripture(week["data"])
+    pptx = render_grace_presentation(data)
     return _pptx_response(pptx, week["label"])
 
 

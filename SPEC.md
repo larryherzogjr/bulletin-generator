@@ -71,6 +71,7 @@ exact shape. Split conceptually into:
 - confession_of_faith (rotates: Apostles' / Nicene / Athanasian)
 - memory_verse_ref + memory_verse_text (shared with the insert)
 - scripture_lessons (list of (ref, "G-pg …; Z-pg …"))
+- scripture_text_source (manual text, or transient official ESV lookup)
 - opening_hymn / sermon_hymn / closing_hymn, each with independent
   `{grace: {num, title}, zion: {num, title}}` entries
 - large_print: full Psalm, three hymn texts, two lesson texts, and editable

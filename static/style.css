@@ -73,12 +73,13 @@ form { display: inline; }
 .grid.two { grid-template-columns: 1fr 1fr; }
 .grid.three { grid-template-columns: 1fr 1fr 1fr; }
 label { display: block; font-size: .85rem; color: var(--muted); font-weight: 600; }
-label input, label textarea, .hymn-row input, .row input, .ann-row input, .ann-row textarea {
+label input, label textarea, label select, .hymn-row input, .row input, .ann-row input, .ann-row textarea {
   width: 100%; margin-top: .25rem; padding: .45rem .55rem;
   border: 1px solid var(--line); border-radius: 6px; font-size: .95rem;
   font-family: inherit; color: var(--ink); background: #fff;
 }
 textarea { resize: vertical; }
+textarea[readonly], input[readonly] { background: #f3f5f7; color: #465462; }
 .hint { font-weight: 400; color: var(--muted); font-size: .78rem; font-style: italic; }
 .formatting-note, .reordering-note {
   background: #eef4fb; border: 1px solid #cfe0f2; border-radius: 6px;
@@ -139,6 +140,22 @@ body.reordering { cursor: grabbing; user-select: none; }
 }
 .hymn-lookup-status.error { color: var(--danger); }
 .hymn-lookup-status.loaded { color: var(--ok); }
+
+/* official ESV lookup */
+.esv-controls {
+  display: flex; align-items: end; gap: .6rem; flex-wrap: wrap;
+  margin-bottom: .65rem;
+}
+.esv-controls label { min-width: 11rem; }
+.esv-controls select { min-height: 2.2rem; }
+.esv-lookup-status { color: var(--muted); font-size: .8rem; flex: 1 1 16rem; }
+.esv-lookup-status.error { color: var(--danger); }
+.esv-lookup-status.loaded { color: var(--ok); }
+.esv-copyright {
+  border-top: 1px solid var(--line); margin: 1rem 0 0; padding-top: .7rem;
+  color: var(--muted); font-size: .72rem; line-height: 1.4;
+}
+.esv-copyright a { color: var(--blue); }
 
 /* events */
 .parish { margin-bottom: 1.2rem; }
