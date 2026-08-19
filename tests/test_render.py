@@ -153,22 +153,64 @@ def test_insert_prayer_box_has_larger_minimum_and_can_grow_to_half_page(sample_b
     assert _page_sizes(render_insert_pdf(insert)) == [(792.0, 612.0)]
 
 
-def test_insert_service_notices_render_first_and_in_requested_order(sample_blob):
-    insert = deepcopy(sample_blob["insert"])
-    insert["communion_sunday"] = True
-    insert["baptism_announcement"] = (
-        "Benjamin Ernest Melvin will be brought to the Lord in Baptism."
+def test_service_notices_render_under_their_bulletin_event_headings(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["communion"] = {"enabled": True, "grace": True, "zion": True}
+    weekly["baptism"] = {
+        "enabled": True,
+        "text": "Melvin Family",
+        "bulletin_text": "Benjamin Ernest Melvin will be brought to the Lord in Baptism.",
+    }
+
+    html = render_bulletin_html(weekly, sample_blob["standing"])
+
+    grace = html.index("COMING EVENTS AT GRACE")
+    first_communion = html.index("Today is Communion Sunday.", grace)
+    baptism = html.index("Baptized Today ~", first_communion)
+    grace_banner = html.index(weekly["grace_events_banner"], baptism)
+    zion = html.index("COMING EVENTS AT ZION", grace_banner)
+    second_communion = html.index("Today is Communion Sunday.", zion)
+    assert grace < first_communion < baptism < grace_banner < zion < second_communion
+    assert html.count("Today is Communion Sunday.") == 2
+    assert "Benjamin Ernest Melvin will be brought" in html
+    assert "Today is Communion Sunday." not in render_insert_html(sample_blob["insert"])
+    assert _page_sizes(render_bulletin_pdf(weekly, sample_blob["standing"])) == [
+        (792.0, 612.0)
+    ]
+
+
+def test_communion_notice_respects_each_parish_checkbox(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+
+    weekly["communion"] = {"enabled": True, "grace": True, "zion": False}
+    grace_only = render_bulletin_html(weekly, sample_blob["standing"])
+    assert grace_only.count("Today is Communion Sunday.") == 1
+    assert grace_only.index("COMING EVENTS AT GRACE") < grace_only.index(
+        "Today is Communion Sunday."
+    ) < grace_only.index("COMING EVENTS AT ZION")
+
+    weekly["communion"] = {"enabled": True, "grace": False, "zion": True}
+    zion_only = render_bulletin_html(weekly, sample_blob["standing"])
+    assert zion_only.count("Today is Communion Sunday.") == 1
+    assert zion_only.index("COMING EVENTS AT ZION") < zion_only.index(
+        "Today is Communion Sunday."
     )
 
-    html = render_insert_html(insert)
 
-    communion = html.index("Today is Communion Sunday.")
-    baptism = html.index("Baptized Today ~")
-    prayer = html.index("Pray for one another.")
-    assert communion < baptism < prayer
-    assert "The Lord's table is open to all baptized and confirmed believers" in html
-    assert "Benjamin Ernest Melvin will be brought" in html
-    assert _page_sizes(render_insert_pdf(insert)) == [(792.0, 612.0)]
+def test_different_zion_hymn_title_shares_its_number_row(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["opening_hymn"] = {
+        "grace": {"num": "", "title": "Yet Not I, But Christ in Me"},
+        "zion": {"num": "35 (Green)", "title": "Immortal, Invisible, God Only Wise"},
+    }
+
+    html = render_bulletin_html(weekly, sample_blob["standing"])
+    row_start = html.index('<div class="hymn-line zion-line">')
+    row_end = html.index("</div>", row_start)
+    zion_row = html[row_start:row_end]
+
+    assert "Zion #35 (Green)" in zion_row
+    assert "Immortal, Invisible, God Only Wise" in zion_row
 
 
 def test_rich_text_allowlist_escapes_non_formatting_markup(sample_blob):

@@ -17,9 +17,7 @@ def test_blank_blob_has_complete_versioned_shape():
     assert blob["weekly"]["scripture_text_source"] == "manual"
     assert len(blob["insert"]["prayer"]) == 3
     assert "notes_heading" in blob["insert"]
-    assert blob["weekly"]["baptism"]["insert_text"] == ""
-    assert blob["insert"]["communion_sunday"] is False
-    assert blob["insert"]["baptism_announcement"] == ""
+    assert blob["weekly"]["baptism"]["bulletin_text"] == ""
     assert set(blob["weekly"]["large_print"]) == {
         "call_to_worship_text",
         "opening_hymn_text",
@@ -101,23 +99,37 @@ def test_invalid_scripture_source_falls_back_to_manual():
     assert normalize_blob(blob)["weekly"]["scripture_text_source"] == "manual"
 
 
-def test_service_options_are_mirrored_to_insert_notices():
+def test_baptism_bulletin_announcement_is_normalized_and_preserved_when_disabled():
     blob = blank_blob()
-    blob["weekly"]["communion"] = {"enabled": True, "grace": True, "zion": False}
     blob["weekly"]["baptism"] = {
         "enabled": True,
         "text": "Melvin Family",
-        "insert_text": "Benjamin Melvin will be brought to the Lord in Baptism.",
+        "bulletin_text": "Benjamin Melvin will be brought to the Lord in Baptism.",
     }
 
     normalized = normalize_blob(blob)
 
-    assert normalized["insert"]["communion_sunday"] is True
-    assert normalized["insert"]["baptism_announcement"] == (
+    assert normalized["weekly"]["baptism"]["bulletin_text"] == (
         "Benjamin Melvin will be brought to the Lord in Baptism."
     )
 
     normalized["weekly"]["baptism"]["enabled"] = False
     normalized = normalize_blob(normalized)
-    assert normalized["weekly"]["baptism"]["insert_text"].startswith("Benjamin")
-    assert normalized["insert"]["baptism_announcement"] == ""
+    assert normalized["weekly"]["baptism"]["bulletin_text"].startswith("Benjamin")
+
+
+def test_schema_v4_baptism_announcement_is_migrated_without_text_loss():
+    blob = blank_blob()
+    blob["schema_version"] = 4
+    blob["weekly"]["baptism"] = {
+        "enabled": True,
+        "text": "Melvin Family",
+        "insert_text": "Previously saved announcement.",
+    }
+
+    normalized = normalize_blob(blob)
+
+    assert normalized["schema_version"] == CURRENT_SCHEMA_VERSION
+    assert normalized["weekly"]["baptism"]["bulletin_text"] == (
+        "Previously saved announcement."
+    )

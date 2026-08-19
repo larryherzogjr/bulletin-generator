@@ -693,7 +693,7 @@
     const creed = form.querySelector('input[name="confession_of_faith"]:checked');
     setPath(blob, "weekly.confession_of_faith", creed ? creed.value : "");
 
-    // optional sections: {enabled, text?, insert_text?} and
+    // optional sections: {enabled, text?, bulletin_text?} and
     // {enabled, grace, zion}
     form.querySelectorAll("[data-optional]").forEach(function (block) {
       const obj = { enabled: block.querySelector("[data-enable]").checked };

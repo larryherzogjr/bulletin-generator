@@ -77,10 +77,11 @@ exact shape. Split conceptually into:
 - large_print: full Psalm, three hymn texts, two lesson texts, and editable
   lesson labels
 - preacher, sermon_text
-- optional Baptism with separate family/names wording for the bulletin and
-  PowerPoint plus a free-form `Baptized Today` insert announcement
-- optional Holy Communion; when enabled, its fixed invitation prints first on
-  the insert's front panel
+- optional Baptism with separate family/names wording for the worship panel and
+  PowerPoint plus a free-form `Baptized Today` announcement under Coming Events
+  at Grace
+- optional Holy Communion; its fixed invitation prints directly under Coming
+  Events at Grace and/or Zion according to the selected parish checkboxes
 - grace_events / zion_events (list of (day, [(name, time), …])), optional banner line
 - Insert: ordered editable prayer categories (`[{label, names[]}]`), next_date,
   next_readings (list of (label, ref)), announcements (variable list of

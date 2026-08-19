@@ -25,13 +25,14 @@ WEEKLY = {
         ("Matthew 28:16-20", "G-pg 993; Z-pg 1044"),
     ],
 
-    # Optional sections (off by default). Baptism prints before Order of
-    # Service; Confirmation/Holy Communion after the closing hymn.
-    "baptism": {"enabled": False, "text": ""},
+    # Optional sections (off by default). Baptism's short text prints before
+    # Order of Service; bulletin_text prints under Coming Events at Grace.
+    # Confirmation/Holy Communion print after the closing hymn.
+    "baptism": {"enabled": False, "text": "", "bulletin_text": ""},
 
     # Each hymn has a Grace and a Zion entry, each {num, title}. The Zion title
-    # is filled only when Zion sings a different song; it then prints
-    # right-justified under the Grace hymn name.
+    # is filled only when Zion sings a different song; it then prints on the
+    # same row as Zion's hymn number.
     "opening_hymn": {"grace": {"num": "183", "title": "All Creatures of Our God and King"},
                      "zion":  {"num": "59 (Green)", "title": ""}},
     "sermon_hymn":  {"grace": {"num": "181", "title": "O for a Thousand Tongues to Sing"},

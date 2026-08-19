@@ -47,11 +47,8 @@
   .sermon-text { font-weight: 700; }   /* sermon text bold by default */
 
   .hymn { margin-top: calc(8pt * var(--s)); margin-bottom: calc(8pt * var(--s)); }
-  .hymn::after { content: ""; display: block; clear: both; }  /* contain floats so the bottom margin sits below the last (Zion) line */
-  .hymn .grace { display: inline-block; }
-  .hymn .htitle { float: right; }      /* Grace hymn name aligns to the right margin */
-  .hymn .zion { display: block; clear: both; }
-  .hymn .ztitle { display: block; float: right; clear: both; }  /* Zion name, right, under the Zion # */
+  .hymn-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12pt; }
+  .hymn-line .hymn-title { margin-left: auto; text-align: right; }
 
   .para { margin-top: calc(8pt * var(--s)); text-align: justify; }
   .para .lead { font-weight: 700; }
@@ -68,6 +65,8 @@
   /* ---- Coming events (right) ---- */
   .events-head { font-weight: 700; text-align: center; margin: 0 0 calc(8pt * var(--s)); }
   .events-head.second { margin-top: calc(22pt * var(--s)); }
+  .service-notice { margin: 0 0 calc(8pt * var(--s)); text-align: justify; }
+  .service-notice .lead { font-weight: 700; }
   .banner { margin: calc(6pt * var(--s)) 0; white-space: pre-line; }  /* normal weight — use <b> for bold */
   .day { font-weight: 700; margin-top: calc(7pt * var(--s)); }
   .ev { display: flex; justify-content: space-between; padding-left: 14pt; }
@@ -78,15 +77,24 @@
 </style>
 </head>
 <body>
-{#- Hymn block: Grace number + title (title right-justified), Zion number on its
-    own line, and the Zion title right-justified beneath it only when present. -#}
+{#- Hymn block: one row per parish so each title stays paired with its number. -#}
 {% macro hymn(h) %}
     <div class="hymn">
-      <span class="grace">Grace #{{ h.grace.num }}</span>
-      <span class="htitle">&ldquo;{{ h.grace.title }}&rdquo;</span>
-      <span class="zion">Zion #{{ h.zion.num }}</span>
-      {%- if h.zion.title %}<span class="ztitle">&ldquo;{{ h.zion.title }}&rdquo;</span>{% endif %}
+      <div class="hymn-line grace-line">
+        <span>Grace #{{ h.grace.num }}</span>
+        <span class="hymn-title">&ldquo;{{ h.grace.title }}&rdquo;</span>
+      </div>
+      <div class="hymn-line zion-line">
+        <span>Zion #{{ h.zion.num }}</span>
+        {%- if h.zion.title %}<span class="hymn-title">&ldquo;{{ h.zion.title }}&rdquo;</span>{% endif %}
+      </div>
     </div>
+{% endmacro %}
+{% macro communion_notice() %}
+    <div class="service-notice"><span class="lead">Today is Communion Sunday.</span> The Lord's table is open to all baptized and confirmed believers, who have rightly examined themselves and live in repentance of sin and personal faith in Jesus Christ, while acknowledging the real presence of Christ in the sacrament.</div>
+{% endmacro %}
+{% macro baptism_notice(text) %}
+    <div class="service-notice"><span class="lead">Baptized Today ~</span> {{ text }}</div>
 {% endmacro %}
 <div class="sheet">
 
@@ -157,6 +165,8 @@
   <!-- ============ RIGHT PANEL: COMING EVENTS ============ -->
   <div class="panel right">
     <div class="events-head">COMING EVENTS AT GRACE</div>
+    {% if w.communion.enabled and w.communion.grace %}{{ communion_notice() }}{% endif %}
+    {% if w.baptism.enabled and w.baptism.bulletin_text %}{{ baptism_notice(w.baptism.bulletin_text) }}{% endif %}
     {% if w.grace_events_banner %}<div class="banner">{{ w.grace_events_banner }}</div>{% endif %}
     {% for day, items in w.grace_events %}
       <div class="day">{{ day }}</div>
@@ -173,6 +183,7 @@
     {% if w.between_events %}<div class="banner">{{ w.between_events }}</div>{% endif %}
 
     <div class="events-head second">COMING EVENTS AT ZION</div>
+    {% if w.communion.enabled and w.communion.zion %}{{ communion_notice() }}{% endif %}
     {% if w.zion_events_banner %}<div class="banner">{{ w.zion_events_banner }}</div>{% endif %}
     {% for day, items in w.zion_events %}
       <div class="day">{{ day }}</div>
