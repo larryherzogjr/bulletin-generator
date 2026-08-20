@@ -29,7 +29,14 @@ WEEKLY = {
     # Optional sections (off by default). Baptism's short text prints before
     # Order of Service; bulletin_text prints under Coming Events at Grace.
     # Confirmation/Holy Communion print after the closing hymn.
-    "baptism": {"enabled": False, "text": "", "bulletin_text": ""},
+    "baptism": {
+        "enabled": False,
+        "text": "",
+        "bulletin_text": (
+            "Johnny Smith, son of Doug & Wanda Smith will be brought to the Lord "
+            "in Baptism. Sponsors are Frank & Susan Petersen."
+        ),
+    },
 
     # Each hymn has a Grace and a Zion entry, each {num, title}. The Zion title
     # is filled only when Zion sings a different song; it then prints on the

@@ -52,7 +52,12 @@ from copy import deepcopy
 # Stored blobs without a version are legacy version 0. Normalizing them applies
 # the existing prayer/hymn migrations and upgrades them to this version. A blob
 # from a newer application is rejected instead of silently losing unknown data.
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
+
+DEFAULT_BAPTISM_BULLETIN_TEXT = (
+    "Johnny Smith, son of Doug & Wanda Smith will be brought to the Lord in "
+    "Baptism. Sponsors are Frank & Susan Petersen."
+)
 
 
 class SchemaVersionError(ValueError):
@@ -216,7 +221,8 @@ def blank_blob() -> dict:
             "baptism": {
                 "enabled": False,
                 "text": "",          # family/names before ORDER OF SERVICE
-                "bulletin_text": "", # free-form Baptized Today announcement
+                # The template supplies the bold "Baptized Today ~" prefix.
+                "bulletin_text": DEFAULT_BAPTISM_BULLETIN_TEXT,
             },
             # Each hymn carries a Grace and a Zion entry, each {num, title}.
             # The Zion hymnal sometimes lists a different song; its title renders
@@ -368,12 +374,18 @@ def _text_section(d) -> dict:
 def _baptism(d) -> dict:
     """Optional Baptism section with worship and events-panel wording."""
     d = d if isinstance(d, dict) else {}
+    if "bulletin_text" in d:
+        bulletin_text = d.get("bulletin_text")
+    elif "insert_text" in d:
+        bulletin_text = d.get("insert_text")
+    else:
+        bulletin_text = DEFAULT_BAPTISM_BULLETIN_TEXT
     return {
         "enabled": _bool(d.get("enabled")),
         "text": _s(d.get("text")),
         # ``insert_text`` was the brief schema-v4 name before the placement was
         # corrected from the insert to the bulletin's Grace events panel.
-        "bulletin_text": _s(d.get("bulletin_text", d.get("insert_text"))),
+        "bulletin_text": _s(bulletin_text),
     }
 
 
@@ -480,12 +492,24 @@ def _migrate_v4_to_v5(migrated: dict) -> dict:
     return migrated
 
 
+def _migrate_v5_to_v6(migrated: dict) -> dict:
+    """Seed the editable Baptism announcement once for existing weeks."""
+    weekly = migrated.get("weekly")
+    if isinstance(weekly, dict):
+        baptism = weekly.get("baptism")
+        if isinstance(baptism, dict) and not _s(baptism.get("bulletin_text")):
+            baptism["bulletin_text"] = DEFAULT_BAPTISM_BULLETIN_TEXT
+    migrated["schema_version"] = 6
+    return migrated
+
+
 _MIGRATIONS = {
     0: _migrate_v0_to_v1,
     1: _migrate_v1_to_v2,
     2: _migrate_v2_to_v3,
     3: _migrate_v3_to_v4,
     4: _migrate_v4_to_v5,
+    5: _migrate_v5_to_v6,
 }
 
 

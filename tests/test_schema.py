@@ -3,6 +3,7 @@ import pytest
 from schema import (
     CURRENT_SCHEMA_VERSION,
     CREEDS,
+    DEFAULT_BAPTISM_BULLETIN_TEXT,
     SchemaVersionError,
     blank_blob,
     normalize_blob,
@@ -18,7 +19,7 @@ def test_blank_blob_has_complete_versioned_shape():
     assert blob["weekly"]["scripture_text_source"] == "manual"
     assert len(blob["insert"]["prayer"]) == 3
     assert "notes_heading" in blob["insert"]
-    assert blob["weekly"]["baptism"]["bulletin_text"] == ""
+    assert blob["weekly"]["baptism"]["bulletin_text"] == DEFAULT_BAPTISM_BULLETIN_TEXT
     assert set(blob["weekly"]["large_print"]) == {
         "call_to_worship_text",
         "opening_hymn_text",
@@ -142,3 +143,19 @@ def test_schema_v4_baptism_announcement_is_migrated_without_text_loss():
     assert normalized["weekly"]["baptism"]["bulletin_text"] == (
         "Previously saved announcement."
     )
+
+
+def test_schema_v5_seeds_baptism_default_once_and_then_allows_clearing():
+    blob = blank_blob()
+    blob["schema_version"] = 5
+    blob["weekly"]["baptism"]["bulletin_text"] = ""
+
+    normalized = normalize_blob(blob)
+
+    assert normalized["schema_version"] == CURRENT_SCHEMA_VERSION
+    assert normalized["weekly"]["baptism"]["bulletin_text"] == (
+        DEFAULT_BAPTISM_BULLETIN_TEXT
+    )
+
+    normalized["weekly"]["baptism"]["bulletin_text"] = ""
+    assert normalize_blob(normalized)["weekly"]["baptism"]["bulletin_text"] == ""

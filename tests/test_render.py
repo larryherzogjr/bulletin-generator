@@ -17,6 +17,7 @@ from render import (
     render_large_print_content_html,
     render_large_print_pdf,
 )
+from schema import DEFAULT_BAPTISM_BULLETIN_TEXT
 
 
 def _page_sizes(pdf):
@@ -177,6 +178,17 @@ def test_service_notices_render_under_their_bulletin_event_headings(sample_blob)
     assert _page_sizes(render_bulletin_pdf(weekly, sample_blob["standing"])) == [
         (792.0, 612.0)
     ]
+
+
+def test_default_baptism_announcement_renders_once_below_grace_heading(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["baptism"]["enabled"] = True
+
+    html = render_bulletin_html(weekly, sample_blob["standing"])
+
+    assert html.count("Baptized Today ~") == 1
+    assert "Johnny Smith, son of Doug &amp; Wanda Smith will be brought" in html
+    assert DEFAULT_BAPTISM_BULLETIN_TEXT.replace("&", "&amp;") in html
 
 
 def test_communion_notice_respects_each_parish_checkbox(sample_blob):

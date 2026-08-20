@@ -67,6 +67,14 @@ def test_food_at_grace_checkbox_is_shown_and_preserves_checked_state(client, sam
     )
 
 
+def test_baptism_announcement_is_an_editable_value_not_placeholder(client):
+    week_id = _seed(client)
+    edit = client.get(f"/weeks/{week_id}/edit")
+
+    assert b"Johnny Smith, son of Doug &amp; Wanda Smith will be brought" in edit.data
+    assert b'placeholder="Benjamin Ernest Melvin' not in edit.data
+
+
 def test_cross_origin_write_is_rejected(client):
     rejected = client.post(
         "/weeks/new",
