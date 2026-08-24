@@ -371,25 +371,47 @@ export function scriptureSlideFontSize(value) {
   return 20;
 }
 
+function splitScripturePhrases(value, hardMaxChars = 1050) {
+  const text = splitScriptureVerses(value).join(" ");
+  if (!text) return [];
+
+  const phrases = [];
+  const punctuation = /[.!?;:,](?:["'”’)\]]*)?(?=\s|$)/gu;
+  let start = 0;
+  for (const match of text.matchAll(punctuation)) {
+    const end = match.index + match[0].length;
+    const phrase = text.slice(start, end).trim();
+    if (phrase) phrases.push(phrase);
+    start = end;
+  }
+  const remainder = text.slice(start).trim();
+  if (remainder) phrases.push(remainder);
+
+  // Exceptionally long sentences still need a safety limit so that the
+  // smallest supported font remains readable and inside the placeholder.
+  return phrases.flatMap((phrase) => (
+    phrase.length > hardMaxChars ? splitProse(phrase, hardMaxChars) : [phrase]
+  ));
+}
+
 export function splitScriptureSlideTexts(value, maxGroupChars = 430) {
-  const verses = splitScriptureVerses(value);
-  const chunks = [];
-  let current = [];
-  for (const verse of verses) {
-    const candidate = [...current, verse].join(" ");
+  const phrases = splitScripturePhrases(value);
+  const texts = [];
+  let current = "";
+  for (const phrase of phrases) {
+    const candidate = current ? `${current} ${phrase}` : phrase;
     if (current.length && candidate.length > maxGroupChars) {
-      const text = current.join(" ");
-      chunks.push({ text, fontSize: scriptureSlideFontSize(text) });
-      current = [verse];
+      texts.push(current);
+      current = phrase;
     } else {
-      current.push(verse);
+      current = candidate;
     }
   }
-  if (current.length) {
-    const text = current.join(" ");
-    chunks.push({ text, fontSize: scriptureSlideFontSize(text) });
-  }
-  return chunks;
+  if (current) texts.push(current);
+  if (!texts.length) return [];
+
+  const fontSize = Math.min(...texts.map(scriptureSlideFontSize));
+  return texts.map((text) => ({ text, fontSize }));
 }
 
 export function splitHymnSlideTexts(value, maxChars = 650, maxLines = 16) {

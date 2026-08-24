@@ -452,7 +452,7 @@ def test_generated_hymn_slides_repeat_refrain_and_fit_the_font(sample_blob):
     assert all(_shape_font_sizes(root, "Title 1") == {3200} for root in hymn_slides)
 
 
-def test_scripture_slides_keep_whole_verses_hide_numbers_and_adjust_font():
+def test_scripture_slides_break_at_punctuation_hide_numbers_and_share_font():
     long_verse = " ".join(["Alpha"] * 70)
     second_verse = "Beta remains a complete verse."
     third_verse = "Gamma also remains complete."
@@ -476,11 +476,38 @@ def test_scripture_slides_keep_whole_verses_hide_numbers_and_adjust_font():
     slides = json.loads(result.stdout)
 
     assert [slide["text"] for slide in slides] == [
-        long_verse,
-        f"{second_verse} {third_verse}",
+        f"{long_verse} {second_verse}",
+        third_verse,
     ]
-    assert slides[0]["fontSize"] < 40
+    assert slides[0]["fontSize"] == slides[1]["fontSize"] < 40
     assert all("<sup>" not in slide["text"] for slide in slides)
     assert " ".join(slide["text"] for slide in slides) == (
         f"{long_verse} {second_verse} {third_verse}"
     )
+
+
+def test_scripture_slide_breaks_can_cross_verse_boundaries():
+    scripture = (
+        "<sup>1</sup>First verse has a short opening, and continues. "
+        "<sup>2</sup>Second verse fits on the same slide; still together. "
+        "<sup>3</sup>Third verse starts the next slide."
+    )
+    script = (
+        'import { splitScriptureSlideTexts } from "./scripts/generate_grace_presentation.mjs";'
+        f"console.log(JSON.stringify(splitScriptureSlideTexts({json.dumps(scripture)}, 110)));"
+    )
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    slides = json.loads(result.stdout)
+
+    assert len(slides) == 2
+    assert "First verse" in slides[0]["text"]
+    assert "Second verse" in slides[0]["text"]
+    assert slides[1]["text"] == "Third verse starts the next slide."
+    assert len({slide["fontSize"] for slide in slides}) == 1
