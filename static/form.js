@@ -690,6 +690,21 @@
       setPath(blob, el.dataset.key, el.type === "checkbox" ? el.checked : el.value);
     });
 
+    // Zion hymn numbers are edited as a bare number plus a hymnal selector,
+    // but remain stored in the established display format: "45 (Concordia)".
+    form.querySelectorAll("[data-zion-hymn-row]").forEach(function (row) {
+      const input = row.querySelector("[data-zion-hymn-key]");
+      const hymnal = row.querySelector("[data-zion-hymnal]").value;
+      const typedNumber = input.value.trim();
+      const bareNumber = hymnal
+        ? typedNumber.replace(/\s+\((?:Concordia|Green)\)\s*$/i, "").trim()
+        : typedNumber;
+      const value = bareNumber && hymnal
+        ? bareNumber + " (" + hymnal + ")"
+        : bareNumber;
+      setPath(blob, input.dataset.zionHymnKey, value);
+    });
+
     // confession of faith radio
     const creed = form.querySelector('input[name="confession_of_faith"]:checked');
     setPath(blob, "weekly.confession_of_faith", creed ? creed.value : "");

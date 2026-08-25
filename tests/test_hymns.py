@@ -68,7 +68,21 @@ def test_editor_exposes_only_grace_hymn_lookup_controls(client):
     assert "weekly.large_print.sermon_hymn_text" in html
     assert "weekly.large_print.closing_hymn_text" in html
     assert "weekly.opening_hymn.zion.num\" data-hymn-number" not in html
+    assert html.count("data-zion-hymn-row") == 3
+    assert html.count("data-zion-hymnal") == 3
 
     static_response = client.get("/static/data/ambassador_hymns.json")
     assert static_response.status_code == 200
     assert len(static_response.get_json()) == HYMN_COUNT
+
+
+def test_editor_splits_existing_zion_hymn_number_and_hymnal(client):
+    client.post("/weeks/new-from-sample")
+
+    response = client.get("/weeks/1/edit")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'data-zion-hymn-key="weekly.opening_hymn.zion.num"' in html
+    assert 'placeholder="Zion #" value="59"' in html
+    assert '<option value="Green" selected>Green</option>' in html

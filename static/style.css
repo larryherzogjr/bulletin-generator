@@ -73,7 +73,7 @@ form { display: inline; }
 .grid.two { grid-template-columns: 1fr 1fr; }
 .grid.three { grid-template-columns: 1fr 1fr 1fr; }
 label { display: block; font-size: .85rem; color: var(--muted); font-weight: 600; }
-label input, label textarea, label select, .hymn-row input, .row input, .ann-row input, .ann-row textarea {
+label input, label textarea, label select, .hymn-row input, .hymn-row select, .row input, .ann-row input, .ann-row textarea {
   width: 100%; margin-top: .25rem; padding: .45rem .55rem;
   border: 1px solid var(--line); border-radius: 6px; font-size: .95rem;
   font-family: inherit; color: var(--ink); background: #fff;
@@ -138,6 +138,7 @@ body.reordering { cursor: grabbing; user-select: none; }
 .hymn-label { flex: 0 0 4.5rem; font-weight: 600; font-size: .88rem; }
 .hymn-row input { flex: 1; }
 .hymn-row input[data-key$=".title"] { flex: 2; }
+.hymn-row .zion-hymnal { flex: 0 0 8rem; }
 .hymn-row .hymn-load { flex: 0 0 auto; min-width: 6.5rem; }
 .hymn-lookup-status {
   min-height: 1.1rem; margin: -.3rem 0 .45rem 4.95rem;
@@ -233,5 +234,6 @@ details[open] summary::before { content: "▾ "; }
   .hymn-row { flex-wrap: wrap; }
   .hymn-row .hymn-label { flex-basis: 100%; }
   .hymn-row input { min-width: 7rem; }
+  .hymn-row .zion-hymnal { flex: 1 0 8rem; }
   .hymn-lookup-status { margin-left: 0; }
 }

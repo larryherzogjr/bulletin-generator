@@ -149,9 +149,28 @@
 
       <div class="subhead">Zion Hymns <span class="hint">add a title only when Zion sings a different song; it prints right-justified under the Grace hymn</span></div>
       {% for slot, label in [("opening_hymn","Opening"),("sermon_hymn","Sermon"),("closing_hymn","Closing")] %}
-      <div class="hymn-row">
+      {% set saved_zion_num = data.weekly[slot].zion.num %}
+      {% if saved_zion_num.endswith(" (Concordia)") %}
+        {% set zion_num = saved_zion_num[:-12] %}
+        {% set zion_hymnal = "Concordia" %}
+      {% elif saved_zion_num.endswith(" (Green)") %}
+        {% set zion_num = saved_zion_num[:-8] %}
+        {% set zion_hymnal = "Green" %}
+      {% else %}
+        {% set zion_num = saved_zion_num %}
+        {% set zion_hymnal = "" %}
+      {% endif %}
+      <div class="hymn-row" data-zion-hymn-row>
         <span class="hymn-label">{{ label }}</span>
-        <input type="text" data-key="weekly.{{ slot }}.zion.num" placeholder="Zion # (e.g. 59 (Green))" value="{{ data.weekly[slot].zion.num }}">
+        <input type="text" inputmode="numeric" pattern="[0-9]*"
+               data-zion-hymn-key="weekly.{{ slot }}.zion.num"
+               aria-label="{{ label }} Zion hymn number"
+               placeholder="Zion #" value="{{ zion_num }}">
+        <select class="zion-hymnal" data-zion-hymnal aria-label="{{ label }} Zion hymnal">
+          <option value="" {% if not zion_hymnal %}selected{% endif %}>No hymnal</option>
+          <option value="Concordia" {% if zion_hymnal == "Concordia" %}selected{% endif %}>Concordia</option>
+          <option value="Green" {% if zion_hymnal == "Green" %}selected{% endif %}>Green</option>
+        </select>
         <input type="text" data-key="weekly.{{ slot }}.zion.title" placeholder="Title (only if different from Grace)" value="{{ data.weekly[slot].zion.title }}">
       </div>
       {% endfor %}
