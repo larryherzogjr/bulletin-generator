@@ -74,18 +74,6 @@
         </label>
       </fieldset>
 
-      <div class="subhead">Prelude</div>
-      <div class="rows" data-list="weekly.prelude" data-cols="who,names">
-        {% for who, names in data.weekly.prelude %}
-        <div class="row pair">
-          <input type="text" data-col="0" placeholder="who (Grace/Zion)" value="{{ who }}">
-          <input type="text" data-col="1" placeholder="names" value="{{ names }}">
-          <button type="button" class="btn small danger row-del">×</button>
-        </div>
-        {% endfor %}
-      </div>
-      <button type="button" class="btn small add-row" data-target="weekly.prelude">+ Add prelude</button>
-
       <div class="optional" data-optional="weekly.baptism">
         <label class="toggle">
           <input type="checkbox" data-enable
@@ -102,62 +90,6 @@
           </label>
         </div>
       </div>
-
-      <label>Special music <span class="hint">optional — text after &ldquo;SPECIAL MUSIC ~ &rdquo;; blank prints just &ldquo;SPECIAL MUSIC&rdquo;</span>
-        <input type="text" data-key="weekly.special_music" value="{{ data.weekly.special_music }}">
-      </label>
-
-      <div class="grid two">
-        <label>Preacher
-          <input type="text" data-key="weekly.preacher" value="{{ data.weekly.preacher }}">
-        </label>
-        <label>Sermon text
-          <input type="text" data-key="weekly.sermon_text" value="{{ data.weekly.sermon_text }}">
-        </label>
-      </div>
-    </section>
-
-    <!-- ===================== MEMORY VERSE ===================== -->
-    <section class="card">
-      <h2>Memory Verse <span class="hint">shared — prints on both bulletin and insert</span></h2>
-      <div class="grid">
-        <label>Reference
-          <input type="text" data-key="weekly.memory_verse_ref" value="{{ data.weekly.memory_verse_ref }}">
-        </label>
-        <label>Text <span class="hint">verse numbers with &lt;sup&gt;6&lt;/sup&gt;</span>
-          <textarea data-key="weekly.memory_verse_text" rows="3">{{ data.weekly.memory_verse_text }}</textarea>
-        </label>
-      </div>
-    </section>
-
-    <!-- ===================== HYMNS ===================== -->
-    <section class="card">
-      <h2>Grace Hymns <span class="hint">Ambassador hymn numbers load the large-print lyrics automatically</span></h2>
-      {% for slot, label, text_key in [("opening_hymn","Opening","opening_hymn_text"),("sermon_hymn","Sermon","sermon_hymn_text"),("closing_hymn","Closing","closing_hymn_text")] %}
-      <div class="hymn-row" data-hymn-row>
-        <span class="hymn-label">{{ label }}</span>
-        <input type="text" inputmode="numeric" pattern="[0-9]*"
-               data-key="weekly.{{ slot }}.grace.num"
-               data-hymn-number
-               data-hymn-target="weekly.large_print.{{ text_key }}"
-               aria-describedby="hymn-status-{{ slot }}"
-               placeholder="Grace #" value="{{ data.weekly[slot].grace.num }}">
-        <input type="text" data-key="weekly.{{ slot }}.grace.title" placeholder="Title" value="{{ data.weekly[slot].grace.title }}">
-        <button type="button" class="btn small hymn-load" data-hymn-load disabled>Load lyrics</button>
-      </div>
-      <div class="hymn-lookup-status" id="hymn-status-{{ slot }}" data-hymn-status aria-live="polite"></div>
-      {% endfor %}
-    </section>
-
-    <section class="card">
-      <h2>Zion Hymns <span class="hint">add a title only when Zion sings a different song; it prints right-justified under the Grace hymn</span></h2>
-      {% for slot, label in [("opening_hymn","Opening"),("sermon_hymn","Sermon"),("closing_hymn","Closing")] %}
-      <div class="hymn-row">
-        <span class="hymn-label">{{ label }}</span>
-        <input type="text" data-key="weekly.{{ slot }}.zion.num" placeholder="Zion # (e.g. 59 (Green))" value="{{ data.weekly[slot].zion.num }}">
-        <input type="text" data-key="weekly.{{ slot }}.zion.title" placeholder="Title (only if different from Grace)" value="{{ data.weekly[slot].zion.title }}">
-      </div>
-      {% endfor %}
 
       <div class="optional" data-optional="weekly.confirmation">
         <label class="toggle">
@@ -188,11 +120,68 @@
           </label>
         </div>
       </div>
+
     </section>
 
-    <!-- ===================== READINGS ===================== -->
+    <!-- ===================== MUSIC ===================== -->
     <section class="card">
-      <h2>Scripture Lessons</h2>
+      <h2>Music</h2>
+
+      <label>Special music <span class="hint">optional — text after &ldquo;SPECIAL MUSIC ~ &rdquo;; blank prints just &ldquo;SPECIAL MUSIC&rdquo;</span>
+        <input type="text" data-key="weekly.special_music" value="{{ data.weekly.special_music }}">
+      </label>
+
+      <div class="subhead">Grace Hymns <span class="hint">Ambassador hymn numbers load the large-print lyrics automatically</span></div>
+      {% for slot, label, text_key in [("opening_hymn","Opening","opening_hymn_text"),("sermon_hymn","Sermon","sermon_hymn_text"),("closing_hymn","Closing","closing_hymn_text")] %}
+      <div class="hymn-row" data-hymn-row>
+        <span class="hymn-label">{{ label }}</span>
+        <input type="text" inputmode="numeric" pattern="[0-9]*"
+               data-key="weekly.{{ slot }}.grace.num"
+               data-hymn-number
+               data-hymn-target="weekly.large_print.{{ text_key }}"
+               aria-describedby="hymn-status-{{ slot }}"
+               placeholder="Grace #" value="{{ data.weekly[slot].grace.num }}">
+        <input type="text" data-key="weekly.{{ slot }}.grace.title" placeholder="Title" value="{{ data.weekly[slot].grace.title }}">
+        <button type="button" class="btn small hymn-load" data-hymn-load disabled>Load lyrics</button>
+      </div>
+      <div class="hymn-lookup-status" id="hymn-status-{{ slot }}" data-hymn-status aria-live="polite"></div>
+      {% endfor %}
+
+      <div class="subhead">Zion Hymns <span class="hint">add a title only when Zion sings a different song; it prints right-justified under the Grace hymn</span></div>
+      {% for slot, label in [("opening_hymn","Opening"),("sermon_hymn","Sermon"),("closing_hymn","Closing")] %}
+      <div class="hymn-row">
+        <span class="hymn-label">{{ label }}</span>
+        <input type="text" data-key="weekly.{{ slot }}.zion.num" placeholder="Zion # (e.g. 59 (Green))" value="{{ data.weekly[slot].zion.num }}">
+        <input type="text" data-key="weekly.{{ slot }}.zion.title" placeholder="Title (only if different from Grace)" value="{{ data.weekly[slot].zion.title }}">
+      </div>
+      {% endfor %}
+
+    </section>
+
+    <!-- ===================== SCRIPTURE ===================== -->
+    <section class="card">
+      <h2>Scripture</h2>
+
+      <div class="grid two">
+        <label>Preacher
+          <input type="text" data-key="weekly.preacher" value="{{ data.weekly.preacher }}">
+        </label>
+        <label>Sermon text
+          <input type="text" data-key="weekly.sermon_text" value="{{ data.weekly.sermon_text }}">
+        </label>
+      </div>
+
+      <div class="subhead">Memory Verse <span class="hint">shared — prints on both bulletin and insert</span></div>
+      <div class="grid">
+        <label>Reference
+          <input type="text" data-key="weekly.memory_verse_ref" value="{{ data.weekly.memory_verse_ref }}">
+        </label>
+        <label>Text <span class="hint">verse numbers with &lt;sup&gt;6&lt;/sup&gt;</span>
+          <textarea data-key="weekly.memory_verse_text" rows="3">{{ data.weekly.memory_verse_text }}</textarea>
+        </label>
+      </div>
+
+      <div class="subhead">Scripture Lessons</div>
       <div class="esv-controls">
         <label>Full-text source
           <select id="scripture-text-source" data-key="weekly.scripture_text_source">
@@ -407,6 +396,18 @@
           <label>Listen live <input type="text" data-key="standing.listen_live" value="{{ data.standing.listen_live }}"></label>
           <label>Office hours <input type="text" data-key="standing.office_hours" value="{{ data.standing.office_hours }}"></label>
         </div>
+
+        <div class="subhead">Prelude</div>
+        <div class="rows" data-list="weekly.prelude" data-cols="who,names">
+          {% for who, names in data.weekly.prelude %}
+          <div class="row pair">
+            <input type="text" data-col="0" placeholder="who (Grace/Zion)" value="{{ who }}">
+            <input type="text" data-col="1" placeholder="names" value="{{ names }}">
+            <button type="button" class="btn small danger row-del">×</button>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn small add-row" data-target="weekly.prelude">+ Add prelude</button>
 
         <div class="subhead">Contact lines</div>
         <div class="rows single" data-list="standing.contact_lines" data-cols="line">
