@@ -21,6 +21,7 @@
     text-decoration: underline;
   }
   .text { white-space: pre-line; }
+  .text.scripture-text { white-space: normal; }
   .response {
     margin: calc(18pt * {{ scale }}) 0;
     text-align: center;
@@ -56,12 +57,12 @@
 
 <section class="section">
   <h1 class="heading">{{ lesson_heading(lp.first_lesson_label, lessons[0] if lessons|length > 0 else none) }}</h1>
-  <div class="text">{{ lp.first_lesson_text|scripture_visible }}</div>
+  <div class="text scripture-text">{{ lp.first_lesson_text|scripture_visible }}</div>
 </section>
 
 <section class="section">
   <h1 class="heading">{{ lesson_heading(lp.second_lesson_label, lessons[1] if lessons|length > 1 else none) }}</h1>
-  <div class="text">{{ lp.second_lesson_text|scripture_visible }}</div>
+  <div class="text scripture-text">{{ lp.second_lesson_text|scripture_visible }}</div>
 </section>
 
 {% if responses.gospel %}<div class="response">{{ responses.gospel }}</div>{% endif %}

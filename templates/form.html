@@ -340,6 +340,10 @@
     <section class="card">
       <h2>Insert</h2>
 
+      <label>Missionaries
+        <input type="text" data-key="insert.missionaries" value="{{ data.insert.missionaries }}">
+      </label>
+
       <div class="subhead">Prayer list <span class="hint">categories are renamable; add or remove as needed</span></div>
       <div class="prayer" data-prayer="insert.prayer">
         {% for cat in data.insert.prayer %}
@@ -454,7 +458,6 @@
         <div class="subhead">Insert standing</div>
         <div class="grid two">
           <label>Prayer tail <textarea data-key="insert.prayer_tail" rows="3">{{ data.insert.prayer_tail }}</textarea></label>
-          <label>Missionaries <input type="text" data-key="insert.missionaries" value="{{ data.insert.missionaries }}"></label>
           <label>Congregations <input type="text" data-key="insert.congregations" value="{{ data.insert.congregations }}"></label>
           <label>Sick notice <input type="text" data-key="insert.sick_notice" value="{{ data.insert.sick_notice }}"></label>
           <label>Notes heading <input type="text" data-key="insert.notes_heading" value="{{ data.insert.notes_heading }}"></label>

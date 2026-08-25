@@ -100,6 +100,17 @@ def test_large_print_uses_the_selected_editable_creed(sample_blob):
     assert "CUSTOM APOSTLES WORDING" in html
 
 
+def test_large_print_scripture_lessons_wrap_as_continuous_prose(sample_blob):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["large_print"]["first_lesson_text"] = "First verse.\nSecond verse."
+
+    html = render_large_print_content_html(weekly, sample_blob["standing"])
+
+    assert ".text.scripture-text { white-space: normal; }" in html
+    assert '<div class="text scripture-text">First verse.\nSecond verse.</div>' in html
+    assert '<div class="text">' in html
+
+
 def test_large_print_renders_text_from_the_ambassador_library(sample_blob):
     library_path = BASE_DIR / "static" / "data" / "ambassador_hymns.json"
     library = json.loads(library_path.read_text(encoding="utf-8"))
