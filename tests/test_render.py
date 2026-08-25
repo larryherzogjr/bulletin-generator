@@ -100,13 +100,15 @@ def test_large_print_uses_the_selected_editable_creed(sample_blob):
     assert "CUSTOM APOSTLES WORDING" in html
 
 
-def test_large_print_scripture_lessons_wrap_as_continuous_prose(sample_blob):
+def test_large_print_scripture_sections_wrap_as_continuous_prose(sample_blob):
     weekly = deepcopy(sample_blob["weekly"])
+    weekly["large_print"]["call_to_worship_text"] = "Psalm line one.\nPsalm line two."
     weekly["large_print"]["first_lesson_text"] = "First verse.\nSecond verse."
 
     html = render_large_print_content_html(weekly, sample_blob["standing"])
 
     assert ".text.scripture-text { white-space: normal; }" in html
+    assert '<div class="text scripture-text">Psalm line one.\nPsalm line two.</div>' in html
     assert '<div class="text scripture-text">First verse.\nSecond verse.</div>' in html
     assert '<div class="text">' in html
 
