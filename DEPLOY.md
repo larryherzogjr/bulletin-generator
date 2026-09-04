@@ -190,6 +190,7 @@ limit is 1 MiB (`BULLETIN_MAX_CONTENT_LENGTH=1048576`).
 | Font/layout drift | `fc-list \| grep -i liberation` |
 | PDF returns HTTP 422 | Shorten the section named in the layout error |
 | PowerPoint returns HTTP 422 | Complete the missing creed, lesson, sermon, hymn, or baptism field named on the error page |
+| Gunicorn reports a `/home/bulletin` control-server error | Deploy the current systemd unit, which disables the unused Gunicorn control socket |
 | Update refuses to run | `git status`; production tracked files must be clean |
 | Preflight fails | Run pytest and `manage.py check --render` manually |
 | Rollback also fails | Inspect the journal and verify DB ownership/path |

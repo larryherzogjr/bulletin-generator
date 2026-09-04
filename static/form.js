@@ -26,6 +26,109 @@
   let esvLookupPromise = null;
   let esvLookupTimer = null;
   let esvRequestVersion = 0;
+  let loadedEsvReferences = null;
+
+  // Keep navigation useful throughout the long editor without hiding sections.
+  const sectionLinks = Array.from(document.querySelectorAll('.section-nav a'));
+  const sections = sectionLinks.map(function (link) {
+    return document.querySelector(link.getAttribute('href'));
+  });
+  let navigationFrame = null;
+  function updateSectionNavigation() {
+    navigationFrame = null;
+    const offset = document.querySelector('.section-nav').getBoundingClientRect().bottom + 40;
+    let active = sections[0];
+    sections.forEach(function (section) {
+      if (section.getBoundingClientRect().top <= offset) active = section;
+    });
+    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4) active = sections[sections.length - 1];
+    sectionLinks.forEach(function (link) {
+      if (link.hash === '#' + active.id) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }
+  window.addEventListener('scroll', function () {
+    if (navigationFrame === null) navigationFrame = requestAnimationFrame(updateSectionNavigation);
+  }, { passive: true });
+  window.addEventListener('resize', updateSectionNavigation);
+  updateSectionNavigation();
+
+  // Insert only our supported formatting tags, preserving the existing data contract.
+  let formattingId = 0;
+  function addFormattingTools(field) {
+    if (field.dataset.formattingReady) return;
+    field.dataset.formattingReady = 'true';
+    if (!field.id) field.id = 'formatted-field-' + (++formattingId);
+    const label = field.closest('label');
+    if (label) {
+      label.htmlFor = field.id;
+      field.setAttribute('aria-label', label.firstChild.textContent.trim());
+    }
+    else if (!field.hasAttribute('aria-label')) field.setAttribute('aria-label', field.placeholder || 'Text');
+    const toolbar = document.createElement('span');
+    toolbar.className = 'format-toolbar';
+    toolbar.setAttribute('role', 'group');
+    toolbar.setAttribute('aria-label', 'Text formatting');
+    [['b', 'B', 'Bold'], ['i', 'I', 'Italic'], ['u', 'U', 'Underline']].forEach(function (item) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'format-button format-' + item[0];
+      button.textContent = item[1];
+      button.title = item[2] + ' selected text';
+      button.setAttribute('aria-label', item[2] + ' selected text');
+      button.setAttribute('aria-controls', field.id);
+      button.addEventListener('mousedown', function (event) { event.preventDefault(); });
+      button.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (field.readOnly || field.disabled) return;
+        const start = field.selectionStart;
+        const end = field.selectionEnd;
+        const selected = field.value.slice(start, end);
+        const opening = '<' + item[0] + '>';
+        const closing = '</' + item[0] + '>';
+        field.setRangeText(opening + selected + closing, start, end, 'preserve');
+        field.focus();
+        field.setSelectionRange(start + opening.length, start + opening.length + selected.length);
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      toolbar.appendChild(button);
+    });
+    field.before(toolbar);
+    field._formatToolbar = toolbar;
+  }
+  function prepareFormatting(root) {
+    root.querySelectorAll('textarea, input[data-key="weekly.order_of_service"], input[data-key="standing.radio"]').forEach(addFormattingTools);
+  }
+  prepareFormatting(form);
+  new MutationObserver(function (records) {
+    records.forEach(function (record) {
+      record.addedNodes.forEach(function (node) {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.matches('textarea')) addFormattingTools(node);
+        prepareFormatting(node);
+      });
+    });
+  }).observe(form, { childList: true, subtree: true });
+
+  // Build a safe formatted preview from text. Unknown markup remains literal text;
+  // never interpret attributes, URLs, scripts, or arbitrary HTML from saved fields.
+  function renderFormattedText(container, value) {
+    container.replaceChildren();
+    const stack = [container];
+    String(value).split(/(<\/?(?:b|i|u|sup|sub)>)/g).forEach(function (part) {
+      const opening = part.match(/^<(b|i|u|sup|sub)>$/);
+      const closing = part.match(/^<\/(b|i|u|sup|sub)>$/);
+      if (opening) {
+        const element = document.createElement(opening[1]);
+        stack[stack.length - 1].appendChild(element);
+        stack.push(element);
+      } else if (closing && stack.length > 1 && stack[stack.length - 1].tagName.toLowerCase() === closing[1]) {
+        stack.pop();
+      } else {
+        stack[stack.length - 1].appendChild(document.createTextNode(part));
+      }
+    });
+  }
 
   // ---- helpers ----------------------------------------------------------
   function setPath(obj, path, value) {
@@ -279,6 +382,7 @@
   function setEsvStatus(message, className) {
     esvStatus.textContent = message;
     esvStatus.className = "esv-lookup-status" + (className ? " " + className : "");
+    updateScripturePreviews();
   }
 
   function scriptureReferences() {
@@ -293,8 +397,31 @@
     ];
   }
 
+  function updateScripturePreviews() {
+    esvTextTargets.forEach(function (target) {
+      if (!target._preview) {
+        const preview = document.createElement('span');
+        preview.className = 'scripture-preview';
+        preview.setAttribute('role', 'region');
+        preview.setAttribute('aria-label', target.closest('label').firstChild.textContent.trim() + ' — ESV preview');
+        target.after(preview);
+        target._preview = preview;
+      }
+      const automatic = esvSource.value === 'esv';
+      target.hidden = automatic;
+      target._preview.hidden = !automatic;
+      target._formatToolbar.hidden = automatic;
+      target.closest('label').classList.toggle('automatic-scripture', automatic);
+      if (automatic) {
+        const current = loadedEsvReferences === JSON.stringify(scriptureReferences());
+        renderFormattedText(target._preview, current ? target.value : 'Waiting for official ESV text. Check the Scripture source status above.');
+      }
+    });
+  }
+
   function syncEsvMode() {
     const automatic = esvSource.value === "esv";
+    if (!automatic) loadedEsvReferences = null;
     esvButton.disabled = false;
     esvTextTargets.concat(esvLabelTargets).forEach(function (target) {
       target.readOnly = automatic;
@@ -302,11 +429,13 @@
     esvButton.textContent = automatic
       ? "Load / refresh ESV text"
       : "Use automatic ESV";
+    updateScripturePreviews();
     if (!automatic) setEsvStatus("Manual Scripture text is stored with this week.", "");
   }
 
   async function loadEsvScripture() {
     if (esvSource.value !== "esv") return false;
+    loadedEsvReferences = null;
     if (form.dataset.esvConfigured !== "true") {
       setEsvStatus("Automatic ESV is not configured on the server. Set ESV_API_KEY.", "error");
       return false;
@@ -358,6 +487,8 @@
         esvTextTargets.forEach(function (target, index) {
           target.value = result.passages[index].text;
         });
+        loadedEsvReferences = referenceSnapshot;
+        updateScripturePreviews();
         esvLabelTargets[0].value = result.passages[2].heading;
         esvLabelTargets[1].value = result.passages[3].heading;
         setEsvStatus(
@@ -384,6 +515,8 @@
 
   function scheduleEsvLookup() {
     if (esvSource.value !== "esv") return;
+    loadedEsvReferences = null;
+    updateScripturePreviews();
     if (esvLookupTimer !== null) clearTimeout(esvLookupTimer);
     esvLookupTimer = setTimeout(function () {
       esvLookupTimer = null;

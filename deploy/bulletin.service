@@ -37,6 +37,7 @@ EnvironmentFile=-/etc/bulletin-generator.env
 ExecStart=/opt/bulletin-generator/.venv/bin/gunicorn \
     --workers 2 \
     --timeout 120 \
+    --no-control-socket \
     --bind 0.0.0.0:8000 \
     wsgi:application
 

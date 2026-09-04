@@ -245,3 +245,144 @@ details[open] summary::before { content: "▾ "; }
   .hymn-row .zion-hymnal { flex: 1 0 8rem; }
   .hymn-lookup-status { margin-left: 0; }
 }
+
+/* Weekly workspace */
+[hidden] { display: none !important; }
+.topbar h1 { font-size: 1.45rem; line-height: 1.3; }
+.card h2, .gen-card h2 { font-size: 1.2rem; letter-spacing: -.015em; }
+.card-head h2 { margin-bottom: .3rem; }
+.card-head .section-note { margin: 0; }
+.card-head { gap: 1rem; margin-bottom: .8rem; }
+.hint { font-style: normal; font-size: .81rem; }
+.subhead { font-size: 1rem; }
+label input, label textarea, label select, .hymn-row input, .row input, .ann-row input, .ann-row textarea { font-size: 1rem; }
+.btn { min-height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; }
+.btn.small { min-height: 2.2rem; font-size: .85rem; padding: .35rem .65rem; }
+button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid #7198bd; outline-offset: 3px;
+}
+.row input, .hymn-row input { min-width: 0; }
+.row-del { min-width: 2.2rem; }
+.drag-handle { min-height: 2.2rem; flex-basis: 2rem; }
+.section-nav {
+  position: sticky; top: 0; z-index: 9; display: flex; gap: .3rem;
+  padding: .65rem 0; margin-bottom: .65rem; background: var(--bg);
+  border-bottom: 1px solid var(--line); overflow-x: auto;
+}
+.section-nav a {
+  flex: 0 0 auto; color: var(--muted); text-decoration: none; font-size: .9rem;
+  font-weight: 600; padding: .55rem .8rem; border-radius: 6px;
+}
+.section-nav a:hover { background: #e8edf3; color: var(--ink); }
+.section-nav a[aria-current] { color: var(--blue-dk); background: #e2ebf5; }
+.editor-section { scroll-margin-top: 5.5rem; }
+.editor-help { margin: 0 0 1.15rem; color: var(--muted); font-size: .9rem; }
+.editor-help > summary { padding: .45rem 0; }
+.editor-help .hint { margin-left: .4rem; }
+.editor-help .formatting-note { margin-top: .6rem; }
+.content-panel {
+  border: 1px solid var(--line); border-radius: 6px; margin: .7rem 0 1rem;
+  background: #fafbfc;
+}
+.content-panel > summary { padding: .7rem .85rem; font-size: .9rem; font-weight: 600; }
+.content-panel > summary .hint { display: inline-block; margin-left: .5rem; font-weight: 400; }
+.content-panel[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: .8rem; }
+.content-panel > label, .content-panel > .section-note { margin: .8rem; }
+.content-panel .section-note { font-size: .85rem; }
+.hymn-content { margin-left: 4.95rem; }
+.format-toolbar { display: flex; gap: .25rem; margin-top: .4rem; }
+.format-button {
+  cursor: pointer; min-width: 2rem; min-height: 2rem; border: 1px solid var(--line);
+  border-radius: 4px; background: white; color: var(--ink); font-size: .9rem;
+}
+.format-button:hover { background: #e2ebf5; border-color: #9eb5cd; }
+.format-b { font-weight: 700; }
+.format-i { font-style: italic; }
+.format-u { text-decoration: underline; }
+.scripture-preview {
+  display: block; white-space: pre-wrap; font-size: 1rem; line-height: 1.7; font-weight: 400;
+  color: var(--ink); background: white; padding: 1rem; margin-top: .5rem;
+  border: 1px solid var(--line); border-radius: 6px;
+}
+.scripture-preview sup { color: var(--muted); font-size: .7em; }
+.automatic-scripture > .hint { display: none; }
+.sticky-bar { display: block; padding: .7rem 1.2rem; }
+.sticky-bar-inner {
+  display: flex; align-items: center; gap: .8rem; max-width: 57.6rem; margin: 0 auto;
+}
+#save-status { font-size: .85rem; min-width: 3rem; overflow-wrap: anywhere; }
+#go-generate { margin-left: auto; flex-shrink: 0; }
+.duplex-note { max-width: 10rem; margin-left: 0; font-size: .78rem; }
+
+/* Service dates are the primary way to find a week. */
+.week-row { padding: 1rem 0; gap: 1rem; }
+.week-label { min-width: 0; }
+.week-date { display: block; color: var(--ink); font-size: 1.05rem; }
+.week-day { display: block; font-weight: 400; font-size: .88rem; color: var(--muted); margin-top: .2rem; }
+.week-row[data-upcoming] { background: #f0f5fb; box-shadow: inset 3px 0 var(--blue); padding-left: .8rem; padding-right: .8rem; border-radius: 6px; }
+.week-badge { display: inline-block; font-size: .7rem; color: var(--blue-dk); background: #dfebf7; padding: .2rem .4rem; border-radius: 4px; margin-left: .6rem; vertical-align: middle; }
+.week-row.is-protected .week-day::after { content: " · Protected"; color: var(--ok); font-weight: 600; }
+.row-actions { align-items: center; flex-shrink: 0; }
+.week-menu { position: relative; }
+.week-menu > summary::before { content: none; }
+.week-menu-panel {
+  position: absolute; right: 0; top: calc(100% + .5rem); z-index: 11; width: 15rem;
+  background: white; border: 1px solid var(--line); border-radius: 8px; padding: 1rem;
+  box-shadow: 0 8px 24px #1c27331a; display: flex; flex-direction: column; gap: 1rem;
+}
+.protect-week { font-size: .85rem; }
+.protect-week input { min-width: 1rem; min-height: 1rem; }
+
+/* Four outputs, two balanced columns, consistent action placement. */
+.gen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+.gen-card { display: flex; flex-direction: column; margin: 0; padding: 1.3rem; }
+.gen-actions { margin-top: auto; padding-top: 1.2rem; flex-wrap: wrap; }
+.gen-actions .btn { min-height: 2.6rem; }
+.duplex-callout { font-size: .9rem; }
+
+@media (max-width: 48rem) {
+  .week-row { align-items: flex-start; flex-direction: column; gap: .7rem; }
+  .row-actions { width: 100%; }
+  .week-menu { margin-left: auto; }
+  .week-badge { margin-left: .4rem; }
+  .card-head { align-items: flex-start; }
+  .card-head .actions { flex-shrink: 0; }
+}
+@media (max-width: 40rem) {
+  .wrap { padding: 1rem .8rem 8.5rem; }
+  .topbar h1 { font-size: 1.25rem; flex-basis: 100%; }
+  .topbar { gap: .6rem; }
+  .section-nav { margin-left: -.8rem; margin-right: -.8rem; padding-left: .8rem; padding-right: .8rem; }
+  .section-nav a { padding: .55rem .65rem; }
+  .card { padding: 1rem; }
+  .gen-grid { grid-template-columns: 1fr; }
+  .hymn-content { margin-left: 0; }
+  .hymn-row input { min-width: 6rem; }
+  .content-panel > summary .hint { display: block; margin: .2rem 0 0 1rem; }
+  .sticky-bar { padding: .65rem .8rem; }
+  .sticky-bar-inner { flex-wrap: wrap; gap: .6rem; }
+  #save-status { flex: 1; }
+  #go-generate { margin-left: 0; }
+  .row-actions { flex-wrap: wrap; }
+  .week-date { font-size: 1rem; }
+  .week-badge { margin-left: 0; margin-top: .3rem; display: table; }
+  .optional .opt-body { flex-wrap: wrap; }
+  .day-items, .prayer-cat .cat-names { margin-left: 0; }
+  .creed .radio { margin: .35rem .8rem .35rem 0; }
+}
+.grid > .full-width { grid-column: 1 / -1; }
+.week-menu[open] > summary::before { content: none; }
+@media (max-width: 40rem) {
+  .row-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
+  .row-actions > form, .row-actions > .week-menu { margin: 0; display: block; }
+  .row-actions > form > .btn, .week-menu > summary { width: 100%; }
+}
+@media (max-width: 40rem) {
+  .hymn-row input[data-hymn-number] { flex: 0 0 5rem; min-width: 0; }
+  .hymn-row input[data-key$=".grace.title"] { flex: 1 0 calc(100% - 6rem); }
+  .hymn-row .hymn-load { margin-left: auto; }
+}
+@media (max-width: 40rem) {
+  .row-actions { align-items: stretch; }
+  .row-actions .btn { min-height: 2.75rem; text-align: center; }
+}

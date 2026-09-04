@@ -32,6 +32,8 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 
 from flask import (
@@ -238,7 +240,9 @@ def index():
         weeks = db.list_weeks(conn)
     finally:
         conn.close()
-    return render_template("index.html", weeks=weeks)
+    today = datetime.now(ZoneInfo("America/Chicago")).date()
+    upcoming_sunday = today + timedelta(days=(6 - today.weekday()) % 7)
+    return render_template("index.html", weeks=weeks, upcoming_sunday=upcoming_sunday.isoformat())
 
 
 @app.route("/weeks/new", methods=["POST"])

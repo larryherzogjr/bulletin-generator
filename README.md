@@ -84,13 +84,21 @@ layout error rather than a clipped or extra-page PDF.
 # http://127.0.0.1:5000
 ```
 
-The home page lists saved weeks. Check **Keep** to protect a week from both
-manual deletion and the production cleanup job. Clone the most recent
-comparable week, edit the changed sections, save, and open Generate. The editor
-waits for an active save before navigating to the generated files and warns
-while changes or a save are pending. The Generate page also downloads the Grace PowerPoint from
-the saved week. Entering a Grace hymn number loads all verses from the
-Ambassador hymn library into the corresponding editable large-print field.
+The home page lists weeks by service date and highlights the upcoming Sunday.
+Undated drafts stay at the top. Open **More → Protect from deletion** to protect
+a week from both manual deletion and the production cleanup job. Clone a
+comparable week and use the sticky section navigation to edit the changed content.
+The bottom bar shows save status beside **Save**; **Preview & download** also
+saves pending changes before opening the four output cards.
+
+Hymn lyrics expand directly below each Grace hymn; full Scripture passages expand
+beside their references in the Scripture section. Standing responses and creed
+wording live under **Standing info**. Select text and use the **B**, **I**, or **U**
+buttons to insert formatting; additional syntax is explained in **Editing help**.
+Automatic ESV passages display as formatted read-only previews.
+
+Entering a Grace hymn number loads all verses from the Ambassador hymn library
+into the corresponding editable lyrics field.
 Untouched library text is replaced automatically when a cloned week's hymn
 number changes; manually edited verse selections require an explicit replace.
 Selecting **Automatic ESV** loads the Call to Worship, Memory Verse, and first

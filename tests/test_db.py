@@ -145,3 +145,23 @@ def test_purge_uses_service_date_and_skips_protected_or_invalid_weeks(
         } == {week["id"] for week in db.list_weeks(conn)}
     finally:
         conn.close()
+
+
+def test_week_list_sorts_service_dates_instead_of_creation_order(tmp_path, sample_blob):
+    conn = db.get_connection(tmp_path / 'date-order.sqlite3')
+    try:
+        db.init_db(conn)
+        ids = {}
+        for service_date in ['September 6, 2026', '08/23/2026', '2026-08-30', '', 'date to confirm']:
+            blob = deepcopy(sample_blob)
+            blob['weekly']['date'] = service_date
+            ids[service_date] = db.create_week(conn, blob)
+        weeks = db.list_weeks(conn)
+        assert [week['id'] for week in weeks] == [
+            ids['date to confirm'], ids[''], ids['September 6, 2026'], ids['2026-08-30'], ids['08/23/2026']
+        ]
+        assert weeks[2]['service_date'] == '2026-09-06'
+        assert weeks[2]['date_label'] == 'September 6, 2026'
+        assert 'data' not in weeks[2]
+    finally:
+        conn.close()

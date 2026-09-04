@@ -138,12 +138,26 @@ def get_week(conn: sqlite3.Connection, week_id: int) -> dict | None:
 
 
 def list_weeks(conn: sqlite3.Connection) -> list[dict]:
-    """All weeks, newest first, as lightweight rows (no parsed blob)."""
+    """Weeks by service date, with undated drafts first and no full blobs."""
     rows = conn.execute(
-        "SELECT id, label, created_at, updated_at, protected "
+        "SELECT id, label, data, created_at, updated_at, protected "
         "FROM weeks ORDER BY id DESC"
     ).fetchall()
-    return [dict(r) for r in rows]
+    weeks = []
+    for row in rows:
+        week = dict(row)
+        blob = json.loads(week.pop("data"))
+        weekly = blob.get("weekly", {})
+        service_date = _week_date(blob)
+        week["service_date"] = service_date.isoformat() if service_date else ""
+        week["date_label"] = str(weekly.get("date", "")).strip()
+        week["liturgical_day"] = str(weekly.get("liturgical_day", "")).strip()
+        weeks.append(week)
+    return sorted(
+        weeks,
+        key=lambda week: (not week["service_date"], week["service_date"], week["id"]),
+        reverse=True,
+    )
 
 
 def latest_week(conn: sqlite3.Connection) -> dict | None:

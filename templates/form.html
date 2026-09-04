@@ -7,12 +7,21 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<main class="wrap">
+<main class="wrap editor-wrap">
   <header class="topbar">
     <a class="back" href="{{ url_for('index') }}">&larr; All weeks</a>
     <h1 id="page-title">{{ week.label or "New week" }}</h1>
-    <div class="save-state"><span id="save-status">Saved</span></div>
+
   </header>
+
+  <nav class="section-nav" aria-label="Editor sections">
+    <a href="#worship" aria-current="location">Worship</a>
+    <a href="#music">Music</a>
+    <a href="#scripture">Scripture</a>
+    <a href="#events">Events</a>
+    <a href="#insert">Insert</a>
+    <a href="#standing">Standing info</a>
+  </nav>
 
   <form id="week-form" data-week-id="{{ week.id }}"
         data-save-url="{{ url_for('save_week', week_id=week.id) }}"
@@ -20,21 +29,26 @@
         data-esv-configured="{{ 'true' if esv_configured else 'false' }}"
         data-hymn-library-url="{{ url_for('static', filename='data/ambassador_hymns.json') }}">
 
+    <details class="editor-help">
+      <summary>Editing help <span class="hint">Formatting and reordering</span></summary>
     <div class="formatting-note">
       <strong>Formatting:</strong> in any field you can use
       <code>&lt;b&gt;bold&lt;/b&gt;</code>, <code>&lt;i&gt;italic&lt;/i&gt;</code>,
       <code>&lt;u&gt;underline&lt;/u&gt;</code>, <code>&lt;sup&gt;raised&lt;/sup&gt;</code>,
       and <code>&lt;sub&gt;lowered&lt;/sub&gt;</code>. Other angle-bracket text is
-      shown as-is.
+      shown as-is. Select text and use the B, I, or U buttons for common formatting.
     </div>
 
+    <p class="section-note">For manual Scripture text, keep verse numbers in pasted passages. They help split text cleanly and are hidden in generated files.</p>
     <div class="reordering-note">
       <strong>Reordering:</strong> drag the <span aria-hidden="true">↕</span> handle on any repeatable item,
       or focus the handle and use the up/down arrow keys.
     </div>
 
+    </details>
+
     <!-- ===================== WORSHIP ===================== -->
-    <section class="card">
+    <section class="card editor-section" id="worship">
       <h2>Worship</h2>
       <div class="grid two">
         <label>Liturgical day
@@ -43,10 +57,7 @@
         <label>Date
           <input type="text" data-key="weekly.date" value="{{ data.weekly.date }}">
         </label>
-        <label>Call to worship
-          <input type="text" data-key="weekly.call_to_worship" value="{{ data.weekly.call_to_worship }}">
-        </label>
-        <label>Order of service <span class="hint">italicize hymnal names with &lt;i&gt;…&lt;/i&gt;</span>
+        <label class="full-width">Order of service
           <input type="text" data-key="weekly.order_of_service" value="{{ data.weekly.order_of_service }}">
         </label>
       </div>
@@ -124,7 +135,7 @@
     </section>
 
     <!-- ===================== MUSIC ===================== -->
-    <section class="card">
+    <section class="card editor-section" id="music">
       <h2>Music</h2>
 
       <label>Special music <span class="hint">optional — text after &ldquo;SPECIAL MUSIC ~ &rdquo;; blank prints just &ldquo;SPECIAL MUSIC&rdquo;</span>
@@ -137,14 +148,22 @@
         <span class="hymn-label">{{ label }}</span>
         <input type="text" inputmode="numeric" pattern="[0-9]*"
                data-key="weekly.{{ slot }}.grace.num"
+               aria-label="{{ label }} Grace hymn number"
                data-hymn-number
                data-hymn-target="weekly.large_print.{{ text_key }}"
                aria-describedby="hymn-status-{{ slot }}"
                placeholder="Grace #" value="{{ data.weekly[slot].grace.num }}">
-        <input type="text" data-key="weekly.{{ slot }}.grace.title" placeholder="Title" value="{{ data.weekly[slot].grace.title }}">
+        <input type="text" data-key="weekly.{{ slot }}.grace.title" aria-label="{{ label }} Grace hymn title" placeholder="Title" value="{{ data.weekly[slot].grace.title }}">
         <button type="button" class="btn small hymn-load" data-hymn-load disabled>Load lyrics</button>
       </div>
       <div class="hymn-lookup-status" id="hymn-status-{{ slot }}" data-hymn-status aria-live="polite"></div>
+      <details class="content-panel hymn-content">
+        <summary>{{ label }} hymn lyrics <span class="hint">Review or choose verses</span></summary>
+        <p class="section-note">All verses load from the Ambassador library. Keep the verses you want to use in the booklet and Grace PowerPoint.</p>
+        <label>{{ label }} hymn — verses to print
+          <textarea data-key="weekly.large_print.{{ text_key }}" rows="10">{{ data.weekly.large_print[text_key] }}</textarea>
+        </label>
+      </details>
       {% endfor %}
 
       <div class="subhead">Zion Hymns <span class="hint">add a title only when Zion sings a different song; it prints right-justified under the Grace hymn</span></div>
@@ -171,36 +190,15 @@
           <option value="Concordia" {% if zion_hymnal == "Concordia" %}selected{% endif %}>Concordia</option>
           <option value="Green" {% if zion_hymnal == "Green" %}selected{% endif %}>Green</option>
         </select>
-        <input type="text" data-key="weekly.{{ slot }}.zion.title" placeholder="Title (only if different from Grace)" value="{{ data.weekly[slot].zion.title }}">
+        <input type="text" data-key="weekly.{{ slot }}.zion.title" aria-label="{{ label }} Zion hymn title" placeholder="Title (only if different from Grace)" value="{{ data.weekly[slot].zion.title }}">
       </div>
       {% endfor %}
 
     </section>
 
     <!-- ===================== SCRIPTURE ===================== -->
-    <section class="card">
+    <section class="card editor-section" id="scripture">
       <h2>Scripture</h2>
-
-      <div class="grid two">
-        <label>Preacher
-          <input type="text" data-key="weekly.preacher" value="{{ data.weekly.preacher }}">
-        </label>
-        <label>Sermon text
-          <input type="text" data-key="weekly.sermon_text" value="{{ data.weekly.sermon_text }}">
-        </label>
-      </div>
-
-      <div class="subhead">Memory Verse <span class="hint">shared — prints on both bulletin and insert</span></div>
-      <div class="grid">
-        <label>Reference
-          <input type="text" data-key="weekly.memory_verse_ref" value="{{ data.weekly.memory_verse_ref }}">
-        </label>
-        <label>Text <span class="hint">verse numbers with &lt;sup&gt;6&lt;/sup&gt;</span>
-          <textarea data-key="weekly.memory_verse_text" rows="3">{{ data.weekly.memory_verse_text }}</textarea>
-        </label>
-      </div>
-
-      <div class="subhead">Scripture Lessons</div>
       <div class="esv-controls">
         <label>Full-text source
           <select id="scripture-text-source" data-key="weekly.scripture_text_source">
@@ -216,6 +214,42 @@
         references. The official wording is read-only, verse numbers are hidden in
         generated files, and the lesson headings are inferred automatically.
       </p>
+
+
+      <div class="grid two">
+        <label>Preacher
+          <input type="text" data-key="weekly.preacher" value="{{ data.weekly.preacher }}">
+        </label>
+        <label>Sermon text
+          <input type="text" data-key="weekly.sermon_text" value="{{ data.weekly.sermon_text }}">
+        </label>
+      </div>
+
+      <div class="subhead">Call to Worship</div>
+      <label>Psalm reference
+        <input type="text" data-key="weekly.call_to_worship" value="{{ data.weekly.call_to_worship }}">
+      </label>
+      <details class="content-panel">
+        <summary>Call to Worship text <span class="hint">Review full passage</span></summary>
+        <label>Call to Worship (Psalm) — full text
+          <textarea data-key="weekly.large_print.call_to_worship_text" rows="8">{{ data.weekly.large_print.call_to_worship_text }}</textarea>
+        </label>
+      </details>
+
+      <div class="subhead">Memory Verse <span class="hint">shared — prints on both bulletin and insert</span></div>
+      <div class="grid">
+        <label>Reference
+          <input type="text" data-key="weekly.memory_verse_ref" value="{{ data.weekly.memory_verse_ref }}">
+        </label>
+        <details class="content-panel">
+          <summary>Memory Verse text <span class="hint">Review full passage</span></summary>
+        <label>Text <span class="hint">verse numbers with &lt;sup&gt;6&lt;/sup&gt;</span>
+          <textarea data-key="weekly.memory_verse_text" rows="3">{{ data.weekly.memory_verse_text }}</textarea>
+        </label>
+        </details>
+      </div>
+
+      <div class="subhead">Scripture Lessons</div>
       <div class="rows" data-list="weekly.scripture_lessons" data-cols="ref,pages">
         {% for ref, pages in data.weekly.scripture_lessons %}
         <div class="row pair">
@@ -226,76 +260,30 @@
         {% endfor %}
       </div>
       <button type="button" class="btn small add-row" data-target="weekly.scripture_lessons">+ Add lesson</button>
-    </section>
-
-    <!-- ===================== LARGE PRINT ===================== -->
-    <section class="card">
-      <h2>Large-print booklet content</h2>
-      <p class="section-note">
-        Entering a Grace hymn number loads all verses from the Ambassador library.
-        The loaded text remains editable so you can choose which verses to print.
-        In manual Scripture mode, paste the complete Psalm and lesson text here as
-        before. Keep Scripture verse numbers in the pasted lesson text; generated
-        files use them only to find clean verse boundaries and do not display them.
-      </p>
-
-      <label>Call to Worship (Psalm) - full text
-        <textarea data-key="weekly.large_print.call_to_worship_text" rows="8">{{ data.weekly.large_print.call_to_worship_text }}</textarea>
-      </label>
-
-      <label>First hymn - verses to print
-        <textarea data-key="weekly.large_print.opening_hymn_text" rows="10">{{ data.weekly.large_print.opening_hymn_text }}</textarea>
-      </label>
-
-      <div class="grid two">
-        <label>First lesson label
-          <input type="text" data-key="weekly.large_print.first_lesson_label" value="{{ data.weekly.large_print.first_lesson_label }}">
-        </label>
-        <label>Second lesson label
-          <input type="text" data-key="weekly.large_print.second_lesson_label" value="{{ data.weekly.large_print.second_lesson_label }}">
-        </label>
+      <div class="lesson-texts">
+      {% for ordinal, key in [("First", "first"), ("Second", "second")] %}
+        <details class="content-panel">
+          <summary>{{ ordinal }} lesson text <span class="hint">Review full passage</span></summary>
+          <label>{{ ordinal }} lesson label
+            <input type="text" data-key="weekly.large_print.{{ key }}_lesson_label" value="{{ data.weekly.large_print[key + '_lesson_label'] }}">
+          </label>
+          <label>{{ ordinal }} scripture lesson — full text
+            <textarea data-key="weekly.large_print.{{ key }}_lesson_text" rows="10">{{ data.weekly.large_print[key + '_lesson_text'] }}</textarea>
+          </label>
+        </details>
+      {% endfor %}
       </div>
-      <label>First scripture lesson - full text
-        <textarea data-key="weekly.large_print.first_lesson_text" rows="10">{{ data.weekly.large_print.first_lesson_text }}</textarea>
-      </label>
-      <label>Second scripture lesson - full text
-        <textarea data-key="weekly.large_print.second_lesson_text" rows="10">{{ data.weekly.large_print.second_lesson_text }}</textarea>
-      </label>
-
-      <label>Second hymn - verses to print
-        <textarea data-key="weekly.large_print.sermon_hymn_text" rows="10">{{ data.weekly.large_print.sermon_hymn_text }}</textarea>
-      </label>
-      <label>Third hymn - verses to print
-        <textarea data-key="weekly.large_print.closing_hymn_text" rows="10">{{ data.weekly.large_print.closing_hymn_text }}</textarea>
-      </label>
-
-      <details class="large-print-standing">
-        <summary><strong>Responses and creed wording</strong> <span class="hint">standing text - review once, then clone week to week</span></summary>
-        <div class="subhead">Responses</div>
-        {% for key, label in [("kyrie", "After the first hymn"), ("gospel", "After the second lesson"), ("gloria_patri", "After the creed"), ("doxology", "After the third hymn")] %}
-        <label>{{ label }}
-          <textarea data-key="standing.large_print_responses.{{ key }}" rows="5">{{ data.standing.large_print_responses[key] }}</textarea>
-        </label>
-        {% endfor %}
-
-        <div class="subhead">Creed wording</div>
-        {% for key, label in [("apostles", "Apostles' Creed"), ("nicene", "Nicene Creed"), ("athanasian", "Athanasian Creed")] %}
-        <label>{{ label }}
-          <textarea data-key="standing.creed_texts.{{ key }}" rows="{% if key == 'athanasian' %}18{% else %}10{% endif %}">{{ data.standing.creed_texts[key] }}</textarea>
-        </label>
-        {% endfor %}
-      </details>
-
       <p class="esv-copyright">
         Scripture quotations marked “ESV” are from the ESV® Bible (The Holy Bible,
         English Standard Version®), © 2001 by Crossway, a publishing ministry of
         Good News Publishers. Used by permission. All rights reserved.
         <a href="https://www.esv.org/" target="_blank" rel="noopener">ESV.org</a>
       </p>
+
     </section>
 
     <!-- ===================== EVENTS ===================== -->
-    <section class="card">
+    <section class="card editor-section" id="events">
       <h2>Coming Events</h2>
       {% for parish in ["grace", "zion"] %}
       {% if parish == "zion" %}
@@ -337,7 +325,7 @@
     </section>
 
     <!-- ===================== INSERT ===================== -->
-    <section class="card">
+    <section class="card editor-section" id="insert">
       <h2>Insert</h2>
 
       <label>Missionaries
@@ -387,7 +375,7 @@
       </div>
       <button type="button" class="btn small add-row" data-target="insert.next_readings">+ Add reading</button>
 
-      <div class="subhead">Announcements <span class="hint">inline bold with &lt;b&gt;…&lt;/b&gt;</span></div>
+      <div class="subhead">Announcements</div>
       <div class="anns" data-anns="insert.announcements">
         {% for a in data.insert.announcements %}
         <div class="ann-row">
@@ -412,7 +400,7 @@
     </section>
 
     <!-- ===================== STANDING (collapsed) ===================== -->
-    <section class="card">
+    <section class="card editor-section" id="standing">
       <details {% if not data.standing.service_title %}open{% endif %}>
         <summary><h2 class="inline">Standing info <span class="hint">rarely changes</span></h2></summary>
         <div class="grid two">
@@ -423,6 +411,24 @@
           <label>Listen live <input type="text" data-key="standing.listen_live" value="{{ data.standing.listen_live }}"></label>
           <label>Office hours <input type="text" data-key="standing.office_hours" value="{{ data.standing.office_hours }}"></label>
         </div>
+
+      <details class="large-print-standing">
+        <summary><strong>Responses and creed wording</strong> <span class="hint">standing text - review once, then clone week to week</span></summary>
+        <div class="subhead">Responses</div>
+        {% for key, label in [("kyrie", "After the first hymn"), ("gospel", "After the second lesson"), ("gloria_patri", "After the creed"), ("doxology", "After the third hymn")] %}
+        <label>{{ label }}
+          <textarea data-key="standing.large_print_responses.{{ key }}" rows="5">{{ data.standing.large_print_responses[key] }}</textarea>
+        </label>
+        {% endfor %}
+
+        <div class="subhead">Creed wording</div>
+        {% for key, label in [("apostles", "Apostles' Creed"), ("nicene", "Nicene Creed"), ("athanasian", "Athanasian Creed")] %}
+        <label>{{ label }}
+          <textarea data-key="standing.creed_texts.{{ key }}" rows="{% if key == 'athanasian' %}18{% else %}10{% endif %}">{{ data.standing.creed_texts[key] }}</textarea>
+        </label>
+        {% endfor %}
+      </details>
+
 
         <div class="subhead">Prelude</div>
         <div class="rows" data-list="weekly.prelude" data-cols="who,names">
@@ -469,9 +475,12 @@
     </section>
 
     <div class="sticky-bar">
+      <div class="sticky-bar-inner">
       <button type="button" id="save-btn" class="btn primary">Save</button>
-      <a class="btn" id="go-generate" href="{{ url_for('generate', week_id=week.id) }}">Generate &amp; download &rarr;</a>
-      <span class="duplex-note">Save first, then generate for print-ready PDFs.</span>
+      <span id="save-status" class="saved" role="status" aria-live="polite">Saved</span>
+      <a class="btn" id="go-generate" href="{{ url_for('generate', week_id=week.id) }}">Preview &amp; download &rarr;</a>
+      <span class="duplex-note">Changes save before previewing.</span>
+      </div>
     </div>
   </form>
 </main>
