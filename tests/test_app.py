@@ -67,6 +67,44 @@ def test_food_at_grace_checkbox_is_shown_and_preserves_checked_state(client, sam
     )
 
 
+def test_week_can_be_protected_and_then_cannot_be_deleted(client):
+    week_id = _seed(client)
+
+    protected = client.post(
+        f"/weeks/{week_id}/protection", json={"protected": True}
+    )
+    assert protected.status_code == 200
+    assert protected.get_json()["protected"] is True
+
+    index = client.get("/")
+    assert b'class="week-row is-protected"' in index.data
+    assert b'class="protect-week-checkbox"' in index.data
+    assert re.search(rb'class="btn small danger"[^>]*disabled', index.data)
+
+    rejected = client.post(f"/weeks/{week_id}/delete")
+    assert rejected.status_code == 409
+    conn = db.get_connection()
+    try:
+        assert conn.execute(
+            "SELECT protected FROM weeks WHERE id = ?", (week_id,)
+        ).fetchone()[0] == 1
+    finally:
+        conn.close()
+
+    assert client.post(
+        f"/weeks/{week_id}/protection", json={"protected": False}
+    ).status_code == 200
+    assert client.post(f"/weeks/{week_id}/delete").status_code == 302
+
+
+def test_protection_endpoint_requires_a_boolean(client):
+    week_id = _seed(client)
+    response = client.post(
+        f"/weeks/{week_id}/protection", json={"protected": "yes"}
+    )
+    assert response.status_code == 400
+
+
 def test_baptism_announcement_is_an_editable_value_not_placeholder(client):
     week_id = _seed(client)
     edit = client.get(f"/weeks/{week_id}/edit")

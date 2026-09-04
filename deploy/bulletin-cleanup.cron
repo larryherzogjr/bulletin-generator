@@ -1,0 +1,3 @@
+# Delete bulletin weeks more than 13 calendar months old unless Keep is checked.
+# Runs daily as the same unprivileged user that owns the production database.
+17 3 * * * bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 /opt/bulletin-generator/.venv/bin/python /opt/bulletin-generator/manage.py purge --months 13

@@ -84,10 +84,11 @@ layout error rather than a clipped or extra-page PDF.
 # http://127.0.0.1:5000
 ```
 
-The home page lists saved weeks. Clone the most recent comparable week, edit
-the changed sections, save, and open Generate. The editor waits for an active
-save before navigating to the generated files and warns while changes or a
-save are pending. The Generate page also downloads the Grace PowerPoint from
+The home page lists saved weeks. Check **Keep** to protect a week from both
+manual deletion and the production cleanup job. Clone the most recent
+comparable week, edit the changed sections, save, and open Generate. The editor
+waits for an active save before navigating to the generated files and warns
+while changes or a save are pending. The Generate page also downloads the Grace PowerPoint from
 the saved week. Entering a Grace hymn number loads all verses from the
 Ambassador hymn library into the corresponding editable large-print field.
 Untouched library text is replaced automatically when a cloned week's hymn

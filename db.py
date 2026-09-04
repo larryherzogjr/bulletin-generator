@@ -24,10 +24,11 @@ identically on 2-element lists, so rendering is unaffected.
 
 from __future__ import annotations
 
+import os
 import json
 import sqlite3
-import os
-from datetime import datetime, timezone
+from calendar import monthrange
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -46,7 +47,8 @@ CREATE TABLE IF NOT EXISTS weeks (
     label      TEXT NOT NULL DEFAULT '',
     data       TEXT NOT NULL,           -- versioned JSON week snapshot
     created_at TEXT NOT NULL,           -- ISO-8601 UTC
-    updated_at TEXT NOT NULL            -- ISO-8601 UTC
+    updated_at TEXT NOT NULL,           -- ISO-8601 UTC
+    protected  INTEGER NOT NULL DEFAULT 0 CHECK (protected IN (0, 1))
 );
 """
 
@@ -78,6 +80,12 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
 def init_db(conn: sqlite3.Connection) -> None:
     """Create the schema if it doesn't exist. Safe to call repeatedly."""
     conn.executescript(_SCHEMA)
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(weeks)")}
+    if "protected" not in columns:
+        conn.execute(
+            "ALTER TABLE weeks ADD COLUMN protected INTEGER NOT NULL DEFAULT 0 "
+            "CHECK (protected IN (0, 1))"
+        )
     conn.commit()
 
 
@@ -132,7 +140,8 @@ def get_week(conn: sqlite3.Connection, week_id: int) -> dict | None:
 def list_weeks(conn: sqlite3.Connection) -> list[dict]:
     """All weeks, newest first, as lightweight rows (no parsed blob)."""
     rows = conn.execute(
-        "SELECT id, label, created_at, updated_at FROM weeks ORDER BY id DESC"
+        "SELECT id, label, created_at, updated_at, protected "
+        "FROM weeks ORDER BY id DESC"
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -161,10 +170,79 @@ def update_week(
 
 
 def delete_week(conn: sqlite3.Connection, week_id: int) -> bool:
-    """Delete a week. Returns True if a row was removed."""
-    cur = conn.execute("DELETE FROM weeks WHERE id = ?", (week_id,))
+    """Delete an unprotected week. Returns True if a row was removed."""
+    cur = conn.execute(
+        "DELETE FROM weeks WHERE id = ? AND protected = 0", (week_id,)
+    )
     conn.commit()
     return cur.rowcount > 0
+
+
+def set_week_protected(
+    conn: sqlite3.Connection, week_id: int, protected: bool
+) -> bool:
+    """Set a week's deletion protection flag. Returns False if it is missing."""
+    cur = conn.execute(
+        "UPDATE weeks SET protected = ? WHERE id = ?",
+        (int(protected), week_id),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def _week_date(blob: dict) -> date | None:
+    """Parse the human-readable service date used by the editor."""
+    value = str(blob.get("weekly", {}).get("date", "")).strip()
+    for fmt in ("%B %d, %Y", "%b %d, %Y", "%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            pass
+    return None
+
+
+def months_before(day: date, months: int) -> date:
+    """Return the calendar date ``months`` before ``day``."""
+    if months < 0:
+        raise ValueError("months must be non-negative")
+    month_index = day.year * 12 + day.month - 1 - months
+    year, zero_based_month = divmod(month_index, 12)
+    month = zero_based_month + 1
+    return date(year, month, min(day.day, monthrange(year, month)[1]))
+
+
+def purge_old_weeks(
+    conn: sqlite3.Connection, *, months: int = 13, today: date | None = None
+) -> list[int]:
+    """Delete unprotected weeks whose service date is older than ``months``.
+
+    Rows with a blank or unrecognized service date are retained. An immediate
+    transaction ensures a protection change cannot race with the final delete.
+    Returns the deleted week IDs.
+    """
+    cutoff = months_before(today or datetime.now(timezone.utc).date(), months)
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        rows = conn.execute(
+            "SELECT id, data FROM weeks WHERE protected = 0"
+        ).fetchall()
+        old_ids = [
+            int(row["id"])
+            for row in rows
+            if (service_date := _week_date(json.loads(row["data"]))) is not None
+            and service_date < cutoff
+        ]
+        if old_ids:
+            placeholders = ",".join("?" for _ in old_ids)
+            conn.execute(
+                f"DELETE FROM weeks WHERE protected = 0 AND id IN ({placeholders})",
+                old_ids,
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return old_ids
 
 
 def clone_week(conn: sqlite3.Connection, week_id: int) -> int | None:

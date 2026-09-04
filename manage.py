@@ -10,6 +10,7 @@
     python manage.py backup [path]   # online SQLite backup (safe while app runs)
     python manage.py check [--render]# DB integrity/schema + optional PDF preflight
     python manage.py migrate         # back up, then persist current blob version
+    python manage.py purge [--months N] # delete unprotected old weeks
 
 This is a developer/ops convenience; the web form drives the same db.py
 functions. Kept dependency-light so `init`/`seed`/`list`/`clone` work even if
@@ -208,6 +209,30 @@ def cmd_migrate(conn, args) -> int:
     return 0
 
 
+def cmd_purge(conn, args) -> int:
+    """Delete unprotected weeks older than a calendar-month cutoff."""
+    db.init_db(conn)
+    months = 13
+    if args:
+        if len(args) != 2 or args[0] != "--months":
+            print("usage: manage.py purge [--months N]")
+            return 2
+        try:
+            months = int(args[1])
+        except ValueError:
+            print("months must be a positive integer")
+            return 2
+        if months <= 0:
+            print("months must be a positive integer")
+            return 2
+    deleted = db.purge_old_weeks(conn, months=months)
+    if deleted:
+        print(f"purged {len(deleted)} old unprotected week(s): {', '.join(map(str, deleted))}")
+    else:
+        print("purged 0 weeks")
+    return 0
+
+
 COMMANDS = {
     "init": cmd_init,
     "seed": cmd_seed,
@@ -218,6 +243,7 @@ COMMANDS = {
     "backup": cmd_backup,
     "check": cmd_check,
     "migrate": cmd_migrate,
+    "purge": cmd_purge,
 }
 
 

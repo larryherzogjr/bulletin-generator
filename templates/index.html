@@ -30,7 +30,14 @@
     {% if weeks %}
     <ul class="week-list">
       {% for w in weeks %}
-      <li class="week-row">
+      <li class="week-row{% if w.protected %} is-protected{% endif %}">
+        <label class="protect-week" title="Protected weeks cannot be deleted manually or by automatic cleanup">
+          <input type="checkbox" class="protect-week-checkbox"
+                 data-protect-url="{{ url_for('set_protection', week_id=w.id) }}"
+                 aria-label="Protect {{ w.label or 'Untitled week' }} from deletion"
+                 {% if w.protected %}checked{% endif %}>
+          <span>Keep</span>
+        </label>
         <a class="week-label" href="{{ url_for('edit_week', week_id=w.id) }}">
           {{ w.label or "Untitled week" }}
         </a>
@@ -42,7 +49,8 @@
             <button class="btn small" type="submit">Clone</button>
           </form>
           <form class="confirm-delete" method="post" action="{{ url_for('delete', week_id=w.id) }}">
-            <button class="btn small danger" type="submit">Delete</button>
+            <button class="btn small danger" type="submit"
+                    {% if w.protected %}disabled title="Uncheck Keep before deleting"{% endif %}>Delete</button>
           </form>
         </span>
       </li>

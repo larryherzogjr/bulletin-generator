@@ -1,5 +1,7 @@
 import sqlite3
 import stat
+from copy import deepcopy
+from datetime import date
 
 import db
 import manage
@@ -76,3 +78,70 @@ def test_migrate_command_backs_up_and_persists_current_version(tmp_path, monkeyp
         conn.close()
 
     assert len(list((tmp_path / "backups").glob("bulletin-*.sqlite3"))) == 1
+
+
+def test_init_db_adds_protection_to_existing_database(tmp_path):
+    conn = db.get_connection(tmp_path / "legacy.sqlite3")
+    try:
+        conn.execute(
+            """CREATE TABLE weeks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                label TEXT NOT NULL DEFAULT '',
+                data TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )"""
+        )
+        conn.commit()
+
+        db.init_db(conn)
+
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(weeks)")}
+        assert "protected" in columns
+    finally:
+        conn.close()
+
+
+def test_protected_week_cannot_be_deleted(tmp_path, sample_blob):
+    conn = db.get_connection(tmp_path / "weeks.sqlite3")
+    try:
+        db.init_db(conn)
+        week_id = db.create_week(conn, sample_blob)
+        assert db.set_week_protected(conn, week_id, True)
+
+        assert not db.delete_week(conn, week_id)
+        assert db.get_week(conn, week_id)["protected"] == 1
+    finally:
+        conn.close()
+
+
+def test_purge_uses_service_date_and_skips_protected_or_invalid_weeks(
+    tmp_path, sample_blob
+):
+    conn = db.get_connection(tmp_path / "weeks.sqlite3")
+    try:
+        db.init_db(conn)
+
+        def create(service_date):
+            blob = deepcopy(sample_blob)
+            blob["weekly"]["date"] = service_date
+            return db.create_week(conn, blob)
+
+        old_id = create("July 31, 2025")
+        protected_id = create("July 1, 2025")
+        boundary_id = create("August 4, 2025")
+        recent_id = create("August 5, 2025")
+        invalid_id = create("TBD")
+        db.set_week_protected(conn, protected_id, True)
+
+        deleted = db.purge_old_weeks(
+            conn, months=13, today=date(2026, 9, 4)
+        )
+
+        assert deleted == [old_id]
+        assert db.get_week(conn, old_id) is None
+        assert {
+            protected_id, boundary_id, recent_id, invalid_id
+        } == {week["id"] for week in db.list_weeks(conn)}
+    finally:
+        conn.close()

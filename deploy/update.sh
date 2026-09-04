@@ -19,6 +19,7 @@ SERVICE_GROUP="${SERVICE_GROUP:-bulletin}"
 DB_PATH="${BULLETIN_DB:-/var/lib/bulletin/bulletin.sqlite3}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:8000/healthz}"
 UNIT_DEST="${UNIT_DEST:-/etc/systemd/system/${SERVICE}.service}"
+CRON_DEST="${CRON_DEST:-/etc/cron.d/${SERVICE}-cleanup}"
 
 cd "$APP_DIR"
 
@@ -100,6 +101,8 @@ echo "==> health check ($HEALTH_URL)"
 for i in $(seq 1 10); do
   if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
     echo "    ok"
+    echo "==> install daily old-week cleanup"
+    sudo install -m 0644 "$APP_DIR/deploy/bulletin-cleanup.cron" "$CRON_DEST"
     echo "==> done"
     trap - ERR
     exit 0

@@ -5,6 +5,7 @@ Routes
   POST /weeks/new             create a blank week            -> redirect to edit
   POST /weeks/new-from-sample seed a week from sample_data   -> redirect to edit
   POST /weeks/<id>/clone      clone a week                   -> redirect to edit
+  POST /weeks/<id>/protection set deletion protection        -> JSON {ok, protected}
   POST /weeks/<id>/delete     delete a week                  -> redirect to index
   GET  /weeks/<id>/edit       the sectioned edit form
   POST /weeks/<id>            save the form (JSON body)      -> JSON {ok, id}
@@ -278,10 +279,29 @@ def clone(week_id: int):
 def delete(week_id: int):
     conn = db.get_connection()
     try:
-        db.delete_week(conn, week_id)
+        week = _get_week_or_404(conn, week_id)
+        if week["protected"]:
+            abort(409, description="Protected weeks cannot be deleted.")
+        if not db.delete_week(conn, week_id):
+            abort(409, description="This week was protected before it could be deleted.")
     finally:
         conn.close()
     return redirect(url_for("index"))
+
+
+@app.route("/weeks/<int:week_id>/protection", methods=["POST"])
+def set_protection(week_id: int):
+    payload = request.get_json(silent=True)
+    protected = payload.get("protected") if isinstance(payload, dict) else None
+    if not isinstance(protected, bool):
+        return jsonify(ok=False, error="protected must be true or false"), 400
+    conn = db.get_connection()
+    try:
+        if not db.set_week_protected(conn, week_id, protected):
+            abort(404)
+    finally:
+        conn.close()
+    return jsonify(ok=True, id=week_id, protected=protected)
 
 
 @app.route("/weeks/<int:week_id>/edit")

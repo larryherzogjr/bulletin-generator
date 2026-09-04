@@ -15,7 +15,7 @@ Run these commands as the deployment user:
 
 ```sh
 sudo apt update
-sudo apt install -y python3-venv python3-pip \
+sudo apt install -y python3-venv python3-pip cron \
     nodejs npm \
     libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 \
     fonts-liberation poppler-utils
@@ -39,7 +39,10 @@ sudo chgrp -R bulletin /opt/bulletin-generator
 sudo chmod -R g+rX,o-rwx /opt/bulletin-generator
 sudo find /opt/bulletin-generator -type d -exec chmod g+s {} +
 sudo cp deploy/bulletin.service /etc/systemd/system/bulletin.service
+sudo install -m 0644 deploy/bulletin-cleanup.cron \
+    /etc/cron.d/bulletin-cleanup
 sudo systemctl daemon-reload
+sudo systemctl enable --now cron
 sudo systemctl enable --now bulletin
 curl -fsS http://127.0.0.1:8000/healthz && echo OK
 ```
@@ -115,7 +118,29 @@ restores its dependencies and unit file, restarts it, and checks rollback
 health. The database backup is retained.
 
 Environment overrides supported by the updater are `APP_DIR`, `SERVICE`,
-`SERVICE_USER`, `SERVICE_GROUP`, `BULLETIN_DB`, `HEALTH_URL`, and `UNIT_DEST`.
+`SERVICE_USER`, `SERVICE_GROUP`, `BULLETIN_DB`, `HEALTH_URL`, `UNIT_DEST`, and
+`CRON_DEST`.
+
+## Old-week cleanup
+
+The updater installs `/etc/cron.d/bulletin-cleanup`. Every day at 3:17 AM it
+runs `manage.py purge --months 13` as the unprivileged `bulletin` user against
+the production database. Cleanup compares the date entered in the week's
+Weekly information (for example, `May 31, 2026`) with a 13-calendar-month
+cutoff. It deletes only dates strictly older than that cutoff.
+
+Weeks with **Keep** checked are never deleted. Weeks with a blank or
+unrecognized date are also retained so a typo cannot destroy data. Manual
+deletion enforces the same Keep flag on the server, in addition to disabling
+the button in the browser.
+
+Test the cleanup command manually at any time:
+
+```sh
+sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
+    /opt/bulletin-generator/.venv/bin/python \
+    /opt/bulletin-generator/manage.py purge --months 13
+```
 
 ## Backups and recovery
 
