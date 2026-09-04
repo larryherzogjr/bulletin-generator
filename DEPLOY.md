@@ -109,17 +109,20 @@ The updater refuses tracked local production changes, then:
 1. records the currently deployed revision and fast-forwards Git;
 2. installs the pinned Python and PowerPoint runtime dependencies;
 3. creates an online timestamped SQLite backup;
-4. runs pytest and database/schema/PDF/PowerPoint render preflight checks;
+4. runs pytest and database/schema/PDF/PowerPoint render preflight checks,
+   loading `/etc/bulletin-generator.env` through systemd for automatic ESV;
 5. installs the current systemd unit and restarts the service;
 6. verifies `/healthz`.
 
 Any failure after the pull resets the clean checkout to the previous revision,
 restores its dependencies and unit file, restarts it, and checks rollback
-health. The database backup is retained.
+health. Both startup health checks retry while workers initialize. The database
+backup is retained.
 
 Environment overrides supported by the updater are `APP_DIR`, `SERVICE`,
 `SERVICE_USER`, `SERVICE_GROUP`, `BULLETIN_DB`, `HEALTH_URL`, `UNIT_DEST`, and
-`CRON_DEST`.
+`CRON_DEST`. `ENV_FILE` overrides the environment file used by render preflight
+(default `/etc/bulletin-generator.env`); keep it aligned with the service unit.
 
 ## Old-week cleanup
 
@@ -159,7 +162,11 @@ sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
 Verify the live database and render path:
 
 ```sh
-sudo -u bulletin BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
+sudo systemd-run --quiet --wait --pipe --collect \
+    --property=User=bulletin --property=Group=bulletin \
+    --property=WorkingDirectory=/opt/bulletin-generator \
+    --property=EnvironmentFile=-/etc/bulletin-generator.env \
+    --setenv=BULLETIN_DB=/var/lib/bulletin/bulletin.sqlite3 \
     /opt/bulletin-generator/.venv/bin/python \
     /opt/bulletin-generator/manage.py check --render
 ```

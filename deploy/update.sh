@@ -20,6 +20,7 @@ DB_PATH="${BULLETIN_DB:-/var/lib/bulletin/bulletin.sqlite3}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:8000/healthz}"
 UNIT_DEST="${UNIT_DEST:-/etc/systemd/system/${SERVICE}.service}"
 CRON_DEST="${CRON_DEST:-/etc/cron.d/${SERVICE}-cleanup}"
+ENV_FILE="${ENV_FILE:-/etc/bulletin-generator.env}"
 
 cd "$APP_DIR"
 
@@ -27,6 +28,17 @@ secure_checkout() {
   sudo chgrp -R "$SERVICE_GROUP" "$APP_DIR"
   sudo chmod -R g+rX,o-rwx "$APP_DIR"
   sudo find "$APP_DIR" -type d -exec chmod g+s {} +
+}
+
+wait_for_health() {
+  local attempt
+  for attempt in {1..10}; do
+    if curl --connect-timeout 2 --max-time 3 -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
 }
 
 if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
@@ -56,7 +68,7 @@ rollback() {
     sudo cp "$APP_DIR/deploy/bulletin.service" "$UNIT_DEST"
     sudo systemctl daemon-reload
     sudo systemctl restart "$SERVICE"
-    if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+    if wait_for_health; then
       echo "==> rollback healthy" >&2
     else
       echo "==> rollback health check also failed" >&2
@@ -87,7 +99,15 @@ sudo -u "$SERVICE_USER" env BULLETIN_DB="$DB_PATH" \
 
 echo "==> test application"
 ./.venv/bin/python -m pytest -q
-sudo -u "$SERVICE_USER" env BULLETIN_DB="$DB_PATH" \
+# Let systemd read the same root-owned environment file as the app. Running
+# sudo -u alone drops ESV_API_KEY and cannot read that file as the service user.
+# The key never needs to appear in shell arguments or deployment output.
+sudo systemd-run --quiet --wait --pipe --collect \
+  --property="User=$SERVICE_USER" \
+  --property="Group=$SERVICE_GROUP" \
+  --property="WorkingDirectory=$APP_DIR" \
+  --property="EnvironmentFile=-$ENV_FILE" \
+  --setenv="BULLETIN_DB=$DB_PATH" \
   "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" check --render
 
 echo "==> install service unit"
@@ -98,17 +118,14 @@ echo "==> restart service ($SERVICE)"
 sudo systemctl restart "$SERVICE"
 
 echo "==> health check ($HEALTH_URL)"
-for i in $(seq 1 10); do
-  if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
-    echo "    ok"
-    echo "==> install daily old-week cleanup"
-    sudo install -m 0644 "$APP_DIR/deploy/bulletin-cleanup.cron" "$CRON_DEST"
-    echo "==> done"
-    trap - ERR
-    exit 0
-  fi
-  sleep 1
-done
+if wait_for_health; then
+  echo "    ok"
+  echo "==> install daily old-week cleanup"
+  sudo install -m 0644 "$APP_DIR/deploy/bulletin-cleanup.cron" "$CRON_DEST"
+  echo "==> done"
+  trap - ERR
+  exit 0
+fi
 
 echo "    health check FAILED — recent logs:" >&2
 sudo journalctl -u "$SERVICE" -n 30 --no-pager >&2
