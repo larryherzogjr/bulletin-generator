@@ -43,6 +43,28 @@ def test_importer_rejects_an_unexpected_source_structure():
         build_library(source)
 
 
+def test_importer_repairs_transcription_errors_and_accepts_corrected_source():
+    blocks = _representative_source().split("\f")
+    blocks[577] = "1 Amazing grace, 1 sweet the sound,\nThat saved a wretch like me!"
+    blocks[603] = "1 I know of a sleep in Jesus’ name,\n\n2 1 know of a peaceful eventide;"
+    blocks[500] = "1 A refrain\nNo turning back, no turning back!.\nNo turning back, no turning back!."
+    # Verse-specific refrains and poetic contractions must remain intact.
+    blocks[553] = "1 In times like these\n\nRefrain:\n1-2 Be very sure\n3 I’m very sure"
+    blocks[305] = "Offring life and peace to all;\nWith your pray’rs and with your bounties"
+
+    library = build_library("\f".join(blocks))
+
+    assert library["578"] == "1 Amazing grace, how sweet the sound,\nThat saved a wretch like me!"
+    assert library["604"] == "1 I know of a sleep in Jesus’ name,\n\n2 I know of a peaceful eventide;"
+    assert library["501"] == "1 A refrain\nNo turning back, no turning back!\nNo turning back, no turning back!"
+    assert library["554"] == blocks[553]
+    assert library["306"] == "Off’ring life and peace to all;\nWith your pray’rs and with your bounties"
+
+    for number in (306, 501, 578, 604):
+        blocks[number - 1] = library[str(number)]
+    assert build_library("\f".join(blocks)) == library
+
+
 def test_generated_ambassador_library_is_complete_and_numbered():
     library = json.loads(LIBRARY_PATH.read_text(encoding="utf-8"))
 

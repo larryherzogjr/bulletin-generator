@@ -21,6 +21,31 @@ from pathlib import Path
 HYMN_COUNT = 634
 HYMNS_254_255_MARKER = "Print Thine image, pure and holy,"
 
+# Exact, hymn-specific transcription repairs. Keep these in the importer so
+# rebuilding the library from the original source preserves reviewed fixes.
+# Do not apply broad spelling replacements: hymns use intentional archaisms,
+# contractions, foreign-language verses, and edition-specific wording.
+LYRIC_CORRECTIONS = {
+    "2": [("O come, O come. Emmanuel,", "O come, O come, Emmanuel,")],
+    "4": [("Ye saints. who here in patience", "Ye saints, who here in patience")],
+    "23": [("Christ. the Savior, is born!", "Christ, the Savior, is born!")],
+    "152": [
+        ("Nature’s wonder Jesus’ wisdom,", "Nature’s wonder, Jesus’ wisdom,"),
+        ("Treasure. too You have entrusted,", "Treasure, too, You have entrusted,"),
+    ],
+    "179": [("Shall pray. and pray aright.", "Shall pray, and pray aright.")],
+    "184": [("Thine angels adore Thee. all veiling", "Thine angels adore Thee, all veiling")],
+    "196": [("Behold our need. and hear our cry:", "Behold our need, and hear our cry:")],
+    "306": [("Offring life and peace to all;", "Off’ring life and peace to all;")],
+    "336": [("Jesus. alas! how can it be", "Jesus, alas! how can it be")],
+    "386": [("O perfect Love. all human thought", "O perfect Love, all human thought")],
+    "468": [("Draw me. my Savior,", "Draw me, my Savior,")],
+    "480": [("O resurrection day!.", "O resurrection day!")],
+    "501": [("No turning back, no turning back!.", "No turning back, no turning back!")],
+    "578": [("1 Amazing grace, 1 sweet the sound,", "1 Amazing grace, how sweet the sound,")],
+    "604": [("2 1 know of a peaceful eventide;", "2 I know of a peaceful eventide;")],
+}
+
 
 def _normalize_block(block: str) -> str:
     lines = [line.rstrip() for line in block.replace("\r\n", "\n").split("\n")]
@@ -59,6 +84,8 @@ def build_library(text: str) -> dict[str, str]:
             lyrics = blocks[number - 1]
         if not lyrics:
             raise ValueError(f"hymn {number} has no lyrics after source repair")
+        for original, corrected in LYRIC_CORRECTIONS.get(str(number), []):
+            lyrics = lyrics.replace(original, corrected)
         library[str(number)] = lyrics
 
     # Stable sentinels make accidental reordering or a different source edition

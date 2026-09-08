@@ -358,20 +358,11 @@ export function splitScriptureVerses(value) {
     .filter(Boolean);
 }
 
-export function scriptureSlideFontSize(value) {
-  const length = plainText(value).replace(/\s+/g, " ").trim().length;
-  if (length <= 345) return 40;
-  if (length <= 400) return 34;
-  if (length <= 470) return 32;
-  if (length <= 550) return 30;
-  if (length <= 650) return 28;
-  if (length <= 760) return 26;
-  if (length <= 900) return 24;
-  if (length <= 1050) return 22;
-  return 20;
+export function scriptureSlideFontSize() {
+  return 36;
 }
 
-function splitScripturePhrases(value, hardMaxChars = 1050) {
+function splitScripturePhrases(value, hardMaxChars = 360) {
   const text = splitScriptureVerses(value).join(" ");
   if (!text) return [];
 
@@ -387,15 +378,15 @@ function splitScripturePhrases(value, hardMaxChars = 1050) {
   const remainder = text.slice(start).trim();
   if (remainder) phrases.push(remainder);
 
-  // Exceptionally long sentences still need a safety limit so that the
-  // smallest supported font remains readable and inside the placeholder.
+  // Split exceptionally long phrases so the text fits at a fixed 36 pt.
   return phrases.flatMap((phrase) => (
     phrase.length > hardMaxChars ? splitProse(phrase, hardMaxChars) : [phrase]
   ));
 }
 
-export function splitScriptureSlideTexts(value, maxGroupChars = 430) {
-  const phrases = splitScripturePhrases(value);
+export function splitScriptureSlideTexts(value, maxGroupChars = 360) {
+  maxGroupChars = Math.min(maxGroupChars, 360);
+  const phrases = splitScripturePhrases(value, maxGroupChars);
   const texts = [];
   let current = "";
   for (const phrase of phrases) {
@@ -410,7 +401,7 @@ export function splitScriptureSlideTexts(value, maxGroupChars = 430) {
   if (current) texts.push(current);
   if (!texts.length) return [];
 
-  const fontSize = Math.min(...texts.map(scriptureSlideFontSize));
+  const fontSize = scriptureSlideFontSize();
   return texts.map((text) => ({ text, fontSize }));
 }
 
@@ -658,10 +649,13 @@ export async function generatePresentation(blob, outputPath) {
       COMMON.memoryBody,
       composeCallbacks(
         replaceElementText("Title 1", [["Haggai 1:5", memoryReference]]),
-        replaceElementText("Content Placeholder 2", [[
-          "Now, therefore, thus says the Lord of hosts: Consider your ways. ",
-          chunk.text,
-        ]]),
+        (slide) => slide.modifyElement("Content Placeholder 2", [
+          replaceLiteral(
+            "Now, therefore, thus says the Lord of hosts: Consider your ways. ",
+            chunk.text,
+          ),
+          setFontSize(chunk.fontSize),
+        ]),
       ),
     );
   }

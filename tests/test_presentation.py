@@ -114,7 +114,7 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     roots = [ET.fromstring(archive.read(part)) for part in parts]
     texts = [_normalized_slide_text(root) for root in roots]
 
-    assert len(parts) == 63
+    assert len(parts) == 65
     assert all(root.find(f".//{{{P_NS}}}fade") is not None for root in roots)
     assert all(part in archive.namelist() for part in parts)
 
@@ -138,6 +138,8 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     memory_body = next(text for text in texts if "Humble yourselves" in text)
     assert "6Humble" not in memory_body
     assert "7casting" not in memory_body
+    memory_root = next(root for root in roots if "Humble yourselves" in _normalized_slide_text(root))
+    assert _shape_font_sizes(memory_root, "Content Placeholder 2") == {3600}
     assert "New Testament Lesson: Acts 2:14a, 22-36" in joined
     assert "Gospel Lesson: Matthew 28:16-20" in joined
     assert "Special Music and Offering" in joined
@@ -156,7 +158,7 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     assert all("<sup>" not in text for text, _root in scripture_bodies)
     assert all(not text.startswith(("14", "16")) for text, _root in scripture_bodies)
     assert all(
-        _shape_font_sizes(root, "Content Placeholder 2") == {3400}
+        _shape_font_sizes(root, "Content Placeholder 2") == {3600}
         for _text, root in scripture_bodies
     )
 
@@ -476,10 +478,10 @@ def test_scripture_slides_break_at_punctuation_hide_numbers_and_share_font():
     slides = json.loads(result.stdout)
 
     assert [slide["text"] for slide in slides] == [
-        f"{long_verse} {second_verse}",
-        third_verse,
+        " ".join(["Alpha"] * 60),
+        f"{' '.join(['Alpha'] * 10)} {second_verse} {third_verse}",
     ]
-    assert slides[0]["fontSize"] == slides[1]["fontSize"] < 40
+    assert slides[0]["fontSize"] == slides[1]["fontSize"] == 36
     assert all("<sup>" not in slide["text"] for slide in slides)
     assert " ".join(slide["text"] for slide in slides) == (
         f"{long_verse} {second_verse} {third_verse}"
@@ -510,4 +512,4 @@ def test_scripture_slide_breaks_can_cross_verse_boundaries():
     assert "First verse" in slides[0]["text"]
     assert "Second verse" in slides[0]["text"]
     assert slides[1]["text"] == "Third verse starts the next slide."
-    assert len({slide["fontSize"] for slide in slides}) == 1
+    assert {slide["fontSize"] for slide in slides} == {36}
