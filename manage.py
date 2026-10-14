@@ -8,7 +8,7 @@
     python manage.py clone           # clone the most recent week -> new row
     python manage.py render <id>     # write all PDFs and the Grace PowerPoint
     python manage.py backup [path]   # online SQLite backup (safe while app runs)
-    python manage.py check [--render]# DB integrity/schema + optional PDF preflight
+    python manage.py check [--render] [--sample-only] # DB/schema + render preflight
     python manage.py migrate         # back up, then persist current blob version
     python manage.py purge [--months N] # delete unprotected old weeks
 
@@ -180,7 +180,9 @@ def cmd_check(conn, args) -> int:
         from presentation import render_grace_presentation
 
         targets = [("sample", _load_sample_blob())]
-        if normalized:
+        # Deployments test the renderer with complete sample content. A saved
+        # draft may lack fields required for an optional output such as PPTX.
+        if normalized and "--sample-only" not in args:
             targets.append((f"latest week {weeks[0]['id']}", normalized[0]))
         for label, blob in targets:
             blob = hydrate_esv_scripture(blob)

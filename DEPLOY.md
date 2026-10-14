@@ -104,13 +104,27 @@ After committing and pushing a tested change, run:
 /opt/bulletin-generator/deploy/update.sh
 ```
 
+When deploying a change to the updater itself, run the new script from a
+temporary file so the entire update uses its current logic:
+
+```sh
+cd /opt/bulletin-generator
+git fetch origin
+update_script=$(mktemp)
+git show origin/master:deploy/update.sh > "$update_script"
+bash "$update_script"
+rm -f "$update_script"
+```
+
 The updater refuses tracked local production changes, then:
 
 1. records the currently deployed revision and fast-forwards Git;
 2. installs the pinned Python and PowerPoint runtime dependencies;
 3. creates an online timestamped SQLite backup;
-4. runs pytest and database/schema/PDF/PowerPoint render preflight checks,
-   loading `/etc/bulletin-generator.env` through systemd for automatic ESV;
+4. runs pytest, checks database integrity and every stored week's schema, and
+   renders all sample PDFs and the sample PowerPoint using `check --render
+   --sample-only`. Saved drafts do not need to be ready for every output to
+   deploy. The check loads `/etc/bulletin-generator.env` through systemd;
 5. installs the current systemd unit and restarts the service;
 6. verifies `/healthz`.
 
@@ -118,6 +132,10 @@ Any failure after the pull resets the clean checkout to the previous revision,
 restores its dependencies and unit file, restarts it, and checks rollback
 health. Both startup health checks retry while workers initialize. The database
 backup is retained.
+
+For a separate content check of the latest saved week, use `manage.py check
+--render` without `--sample-only` as shown below. That check can fail when a
+draft lacks a supported creed or other required content.
 
 Environment overrides supported by the updater are `APP_DIR`, `SERVICE`,
 `SERVICE_USER`, `SERVICE_GROUP`, `BULLETIN_DB`, `HEALTH_URL`, `UNIT_DEST`, and

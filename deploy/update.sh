@@ -108,7 +108,7 @@ sudo systemd-run --quiet --wait --pipe --collect \
   --property="WorkingDirectory=$APP_DIR" \
   --property="EnvironmentFile=-$ENV_FILE" \
   --setenv="BULLETIN_DB=$DB_PATH" \
-  "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" check --render
+  "$APP_DIR/.venv/bin/python" "$APP_DIR/manage.py" check --render --sample-only
 
 echo "==> install service unit"
 sudo cp "$APP_DIR/deploy/bulletin.service" "$UNIT_DEST"

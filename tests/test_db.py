@@ -5,7 +5,47 @@ from datetime import date
 
 import db
 import manage
+import pytest
 from schema import CURRENT_SCHEMA_VERSION
+
+
+@pytest.mark.parametrize("sample_only", [False, True])
+def test_render_preflight_can_check_sample_with_incomplete_latest_week(
+    tmp_path, sample_blob, monkeypatch, capsys, sample_only
+):
+    import render
+    from presentation import PresentationGenerationError
+
+    # Isolate PowerPoint validation, which blocked the production deployment.
+    for name in ("render_bulletin_pdf", "render_insert_pdf", "render_large_print_pdf"):
+        monkeypatch.setattr(render, name, lambda *args: b"pdf")
+    draft = deepcopy(sample_blob)
+    draft["weekly"]["confession_of_faith"] = ""
+    with db.get_connection(tmp_path / "weeks.sqlite3") as conn:
+        db.init_db(conn)
+        week_id = db.create_week(conn, draft)
+        if sample_only:
+            assert manage.cmd_check(conn, ["--render", "--sample-only"]) == 0
+            output = capsys.readouterr().out
+            assert "render check ok: sample" in output
+            assert "database check ok: 1 week(s)" in output
+            assert "render check ok: latest" not in output
+        else:
+            with pytest.raises(PresentationGenerationError, match="Select the"):
+                manage.cmd_check(conn, ["--render"])
+        assert db.get_week(conn, week_id)["data"] == draft
+
+
+def test_sample_only_preflight_still_rejects_renderer_failure(tmp_path, monkeypatch):
+    import render
+
+    def fail(*args):
+        raise RuntimeError("renderer unavailable")
+
+    monkeypatch.setattr(render, "render_bulletin_pdf", fail)
+    with db.get_connection(tmp_path / "weeks.sqlite3") as conn:
+        with pytest.raises(RuntimeError, match="renderer unavailable"):
+            manage.cmd_check(conn, ["--render", "--sample-only"])
 
 
 def test_crud_clone_and_snapshot_independence(tmp_path, sample_blob):

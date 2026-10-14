@@ -55,7 +55,7 @@ if name == 'curl':
     assert '--property=Group=bulletin' in preflight
     assert '--setenv=BULLETIN_DB=/var/lib/bulletin/test.sqlite3' in preflight
     assert {'--wait', '--pipe', '--collect'} <= set(preflight)
-    assert preflight[-2:] == ['check', '--render']
+    assert preflight[-3:] == ['check', '--render', '--sample-only']
     assert counter.read_text() == '3'
     assert all('--max-time' in call for call in calls if call[0] == 'curl')
     if preflight_fails:
