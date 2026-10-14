@@ -139,7 +139,7 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     assert "6Humble" not in memory_body
     assert "7casting" not in memory_body
     memory_root = next(root for root in roots if "Humble yourselves" in _normalized_slide_text(root))
-    assert _shape_font_sizes(memory_root, "Content Placeholder 2") == {3600}
+    assert _shape_font_sizes(memory_root, "Content Placeholder 2") == {4000}
     assert "New Testament Lesson: Acts 2:14a, 22-36" in joined
     assert "Gospel Lesson: Matthew 28:16-20" in joined
     assert "Special Music and Offering" in joined
@@ -158,7 +158,7 @@ def test_combined_athanasian_baptism_and_communion_deck(sample_blob):
     assert all("<sup>" not in text for text, _root in scripture_bodies)
     assert all(not text.startswith(("14", "16")) for text, _root in scripture_bodies)
     assert all(
-        _shape_font_sizes(root, "Content Placeholder 2") == {3600}
+        _shape_font_sizes(root, "Content Placeholder 2") == {4000}
         for _text, root in scripture_bodies
     )
 
@@ -303,6 +303,30 @@ def test_long_hymn_stanzas_are_split_without_losing_text():
     assert " ".join("\n".join(chunks).split()) == " ".join(stanza.split())
 
 
+@pytest.mark.parametrize(
+    ("text", "expected_size"),
+    [
+        ("\n".join(["A short hymn line."] * 9), 40),
+        ("\n".join(["A short hymn line."] * 10), 36),
+        ("\n".join(["A long hymn line with many words that must wrap across the slide."] * 8), 26),
+    ],
+)
+def test_hymn_font_shrinks_only_when_wrapped_lines_exceed_slide(text, expected_size):
+    script = (
+        'import { hymnSlideFontSize } '
+        'from "./scripts/generate_grace_presentation.mjs";'
+        f"console.log(hymnSlideFontSize({json.dumps(text)}));"
+    )
+    result = subprocess.run(
+        [shutil.which("node"), "--input-type=module", "-e", script],
+        cwd=BASE_DIR,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert int(result.stdout) == expected_size
+
+
 def test_readable_hymn_stanza_stays_on_one_slide():
     stanza = "\n".join(
         ["1 A readable hymn line."]
@@ -368,7 +392,7 @@ console.log(JSON.stringify({ slides, sizes: slides.map(hymnSlideFontSize) }));
 
     assert len(output["slides"]) == 4
     assert all(len(slide.splitlines()) == 8 for slide in output["slides"])
-    assert output["sizes"] == [36, 36, 36, 36]
+    assert output["sizes"] == [40, 40, 40, 40]
     assert output["slides"][1].endswith("As in Thy presence\nHumbly I bow.")
     assert output["slides"][2].endswith("Touch me and heal me,\nSavior divine!")
 
@@ -451,7 +475,7 @@ def test_generated_hymn_slides_repeat_refrain_and_fit_the_font(sample_blob):
     assert len(hymn_slides) == 2
     assert all(_shape_text(root, "Title 1").count("Refrain:") == 1 for root in hymn_slides)
     assert all("Sing it once again." in _shape_text(root, "Title 1") for root in hymn_slides)
-    assert all(_shape_font_sizes(root, "Title 1") == {3200} for root in hymn_slides)
+    assert all(_shape_font_sizes(root, "Title 1") == {4000} for root in hymn_slides)
 
 
 def test_scripture_slides_break_at_punctuation_hide_numbers_and_share_font():
@@ -478,10 +502,10 @@ def test_scripture_slides_break_at_punctuation_hide_numbers_and_share_font():
     slides = json.loads(result.stdout)
 
     assert [slide["text"] for slide in slides] == [
-        " ".join(["Alpha"] * 60),
-        f"{' '.join(['Alpha'] * 10)} {second_verse} {third_verse}",
+        " ".join(["Alpha"] * 50),
+        f"{' '.join(['Alpha'] * 20)} {second_verse} {third_verse}",
     ]
-    assert slides[0]["fontSize"] == slides[1]["fontSize"] == 36
+    assert slides[0]["fontSize"] == slides[1]["fontSize"] == 40
     assert all("<sup>" not in slide["text"] for slide in slides)
     assert " ".join(slide["text"] for slide in slides) == (
         f"{long_verse} {second_verse} {third_verse}"
@@ -512,4 +536,4 @@ def test_scripture_slide_breaks_can_cross_verse_boundaries():
     assert "First verse" in slides[0]["text"]
     assert "Second verse" in slides[0]["text"]
     assert slides[1]["text"] == "Third verse starts the next slide."
-    assert {slide["fontSize"] for slide in slides} == {36}
+    assert {slide["fontSize"] for slide in slides} == {40}

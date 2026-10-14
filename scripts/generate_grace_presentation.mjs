@@ -309,19 +309,35 @@ function splitHymnLines(lines, maxChars, maxLines) {
 
 function formatVerseAndRefrain(verseLines, refrainLines, maxTotalLines) {
   const contentLines = verseLines.length + refrainLines.length;
-  const targetLines = Math.min(maxTotalLines, Math.max(contentLines + 1, 10));
+  const targetLines = Math.min(maxTotalLines, contentLines + 1);
   const blankLines = Math.max(1, targetLines - contentLines);
   return `${verseLines.join("\n")}${"\n".repeat(blankLines + 1)}${refrainLines.join("\n")}`;
 }
 
 export function hymnSlideFontSize(value) {
-  const text = String(value ?? "");
-  const lineCount = text.split("\n").length;
-  const characterCount = text.replace(/\s+/g, " ").trim().length;
-  if (lineCount <= 7 && characterCount <= 240) return 40;
-  if (lineCount <= 9 && characterCount <= 320) return 36;
-  if (lineCount <= 11 && characterCount <= 400) return 32;
-  if (lineCount <= 14 && characterCount <= 520) return 28;
+  // The hymn placeholder is 9 x 6.75 inches. Allow for its margins
+  // and estimate word wrapping before reducing the preferred 40 pt size.
+  const lines = String(value ?? "").split("\n");
+  const widthPoints = 630;
+  const heightPoints = 472;
+  for (const fontSize of [40, 36, 32, 28, 26]) {
+    const charsPerLine = Math.floor(widthPoints / (fontSize * 0.48));
+    const wrappedLines = lines.reduce((total, line) => {
+      let count = 1;
+      let used = 0;
+      for (const word of line.trim().split(/\s+/).filter(Boolean)) {
+        if (used && used + 1 + word.length > charsPerLine) {
+          count += 1;
+          used = 0;
+        }
+        const length = word.length;
+        count += Math.floor((length - 1) / charsPerLine);
+        used = (used ? used + 1 : 0) + ((length - 1) % charsPerLine) + 1;
+      }
+      return total + count;
+    }, 0);
+    if (wrappedLines * fontSize * 1.2 <= heightPoints) return fontSize;
+  }
   return 26;
 }
 
@@ -359,10 +375,10 @@ export function splitScriptureVerses(value) {
 }
 
 export function scriptureSlideFontSize() {
-  return 36;
+  return 40;
 }
 
-function splitScripturePhrases(value, hardMaxChars = 360) {
+function splitScripturePhrases(value, hardMaxChars = 300) {
   const text = splitScriptureVerses(value).join(" ");
   if (!text) return [];
 
@@ -378,14 +394,14 @@ function splitScripturePhrases(value, hardMaxChars = 360) {
   const remainder = text.slice(start).trim();
   if (remainder) phrases.push(remainder);
 
-  // Split exceptionally long phrases so the text fits at a fixed 36 pt.
+  // Split exceptionally long phrases so the text fits at a fixed 40 pt.
   return phrases.flatMap((phrase) => (
     phrase.length > hardMaxChars ? splitProse(phrase, hardMaxChars) : [phrase]
   ));
 }
 
-export function splitScriptureSlideTexts(value, maxGroupChars = 360) {
-  maxGroupChars = Math.min(maxGroupChars, 360);
+export function splitScriptureSlideTexts(value, maxGroupChars = 300) {
+  maxGroupChars = Math.min(maxGroupChars, 300);
   const phrases = splitScripturePhrases(value, maxGroupChars);
   const texts = [];
   let current = "";

@@ -71,7 +71,8 @@ The output contracts are strict:
 - Grace PowerPoint: editable 4:3 slides cloned from the supplied service
   examples, including the selected creed, inferred lesson headings, optional
   baptism and Grace Communion, long-stanza splitting, blank slides, and fade
-  transitions.
+  transitions. Hymns and scripture use 40-point text; overflowing hymn verses
+  use a smaller font, while longer scripture readings continue on another slide.
 
 The bulletin retains its minimum legible scale. The large-print booklet applies
 one uniform font scale to all full-text worship content and keeps reducing it as
