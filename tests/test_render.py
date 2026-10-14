@@ -6,9 +6,11 @@ import pytest
 from pypdf import PdfReader
 from weasyprint import HTML
 
+import render as render_module
 from render import (
     BASE_DIR,
     PDFLayoutError,
+    _class_box_overflows,
     _iter_boxes,
     render_bulletin_html,
     render_bulletin_pdf,
@@ -295,6 +297,46 @@ def test_insert_overflow_fails_closed(sample_blob):
 
     with pytest.raises(PDFLayoutError, match="one 11 x 8.5"):
         render_insert_pdf(insert)
+
+
+@pytest.mark.parametrize("extra_sentences", [0, 30])
+def test_insert_automatically_shrinks_only_when_needed(
+    sample_blob, monkeypatch, extra_sentences
+):
+    insert = deepcopy(sample_blob["insert"])
+    if extra_sentences:
+        insert["announcements"].append({
+            "heading": "Additional announcement",
+            "body": "Additional announcement content for a busy week. "
+            * extra_sentences + "FINAL ANNOUNCEMENT",
+        })
+    insert["bold_notes"].append("FINAL INSERT NOTE")
+    scales = []
+
+    def record_scale(data, scale=1.0):
+        scales.append(scale)
+        return render_insert_html(data, scale)
+
+    monkeypatch.setattr(render_module, "render_insert_html", record_scale)
+    pdf = render_insert_pdf(insert)
+
+    assert _page_sizes(pdf) == [(792.0, 612.0)]
+    assert "FINAL INSERT NOTE" in PdfReader(BytesIO(pdf)).pages[0].extract_text()
+    if extra_sentences:
+        # This busy insert needs more room than even the bulletin's 84% floor.
+        at_old_floor = HTML(
+            string=render_insert_html(insert, scale=0.84), base_url=str(BASE_DIR)
+        ).render()
+        assert _class_box_overflows(at_old_floor, "page")
+        assert 0.70 <= scales[-1] < 0.84
+        assert "FINAL ANNOUNCEMENT" in PdfReader(BytesIO(pdf)).pages[0].extract_text()
+    else:
+        assert scales == [1.0]
+
+    fitted = HTML(
+        string=render_insert_html(insert, scale=scales[-1]), base_url=str(BASE_DIR)
+    ).render()
+    assert not _class_box_overflows(fitted, "page")
 
 
 def test_large_print_requires_full_text_and_rejects_overflow(sample_blob):

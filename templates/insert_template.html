@@ -3,43 +3,45 @@
 <head>
 <meta charset="utf-8">
 <style>
+  /* Shrink text and vertical spacing while preserving the sheet and fold. */
+  :root { --s: {{ scale | default(1) }}; }
   @page { size: 11in 8.5in; margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
     font-family: "Liberation Sans", Arial, Helvetica, sans-serif;
-    font-size: 10pt; line-height: 1.16; color: #000;
+    font-size: calc(10pt * var(--s)); line-height: 1.16; color: #000;
   }
   .sheet { width: 11in; height: 8.5in; font-size: 0; }
   .page {
     display: inline-block; vertical-align: top;
     width: 5.5in; height: 8.5in;
     padding: 0.36in 0.40in 0.30in 0.40in;
-    font-size: 10pt;
+    font-size: calc(10pt * var(--s));
   }
   .b { font-weight: 700; }
   .serif { font-family: "Liberation Serif", "Times New Roman", Times, serif; }
 
   /* ---- Prayer box ---- */
   .praybox {
-    border: 1px dotted #000; padding: 10pt 11pt;
+    border: 1px dotted #000; padding: calc(10pt * var(--s)) 11pt;
     font-family: "Liberation Serif", "Times New Roman", Times, serif;
-    font-size: 10pt; line-height: 1.22;
-    min-height: 3.2in;
+    font-size: calc(10pt * var(--s)); line-height: 1.22;
+    min-height: calc(3.2in * var(--s));
   }
-  .praybox p { margin: 5pt 0 0; text-align: justify; }
+  .praybox p { margin: calc(5pt * var(--s)) 0 0; text-align: justify; }
   .praybox .firstpara { margin-top: 0; }
   .praybox .tag { font-weight: 700; }
   .sick { font-style: italic; font-weight: 700; }
 
   /* ---- Below the box (sans) ---- */
-  .readings { margin-top: 9pt; }
+  .readings { margin-top: calc(9pt * var(--s)); }
   .readings .head { } /* plain */
-  .ann { margin-top: 10pt; }
+  .ann { margin-top: calc(10pt * var(--s)); }
   .ann .head { font-weight: 700; }
   .ann .body { text-align: justify; }
-  .bold-notes { margin-top: 12pt; font-weight: 700; }
-  .bold-notes div { margin-bottom: 1pt; }
+  .bold-notes { margin-top: calc(12pt * var(--s)); font-weight: 700; }
+  .bold-notes div { margin-bottom: calc(1pt * var(--s)); }
 
   /* ---- Right panel ---- */
   .notes-title {

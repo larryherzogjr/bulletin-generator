@@ -112,6 +112,9 @@ _env.filters["scripture_visible"] = scripture_visible
 _MIN_SCALE = 0.84
 _SCALE_STEP = 0.02
 
+# Dense inserts may use smaller type than the bulletin before failing to fit.
+_INSERT_MIN_SCALE = 0.70  # 7pt body text at the emergency minimum
+
 # CSS pixels (WeasyPrint uses 96px/in). These are part of the print contract,
 # not incidental template details.
 _PAGE_HEIGHT = 8.5 * 96
@@ -154,9 +157,9 @@ def render_bulletin_html(weekly: dict, standing: dict, scale: float = 1.0) -> st
     )
 
 
-def render_insert_html(insert: dict) -> str:
+def render_insert_html(insert: dict, scale: float = 1.0) -> str:
     """Render both half-sheet insert sides on one landscape letter sheet."""
-    return _env.get_template("insert_template.html").render(i=insert)
+    return _env.get_template("insert_template.html").render(i=insert, scale=scale)
 
 
 def render_large_print_content_html(
@@ -268,17 +271,29 @@ def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
 
 
 def render_insert_pdf(insert: dict) -> bytes:
-    """Insert -> PDF bytes. One 11x8.5 landscape sheet with two side-by-side panels."""
-    html = render_insert_html(insert)
-    document = HTML(string=html, base_url=str(BASE_DIR)).render()
-    if (
-        not _has_expected_geometry(document, 1, _INSERT_WIDTH, _PAGE_HEIGHT)
-        or _class_box_overflows(document, "page")
-    ):
+    """Fit two insert panels on one landscape sheet, reducing type as needed."""
+    def render_at(scale):
+        return HTML(
+            string=render_insert_html(insert, scale), base_url=str(BASE_DIR)
+        ).render()
+
+    def fits(document):
+        return (
+            _has_expected_geometry(document, 1, _INSERT_WIDTH, _PAGE_HEIGHT)
+            and not _class_box_overflows(document, "page")
+        )
+
+    scale = 1.0
+    document = render_at(scale)
+    while not fits(document) and scale > _INSERT_MIN_SCALE:
+        scale = max(_INSERT_MIN_SCALE, round(scale - _SCALE_STEP, 3))
+        document = render_at(scale)
+    if not fits(document):
         raise PDFLayoutError(
             "insert",
             "The insert content is too long to fit on one 11 x 8.5 inch "
-            "landscape sheet. Shorten the prayer list, readings, announcements, "
+            "landscape sheet even after reducing the font to 7 points. "
+            "Shorten the prayer list, readings, announcements, "
             "or bold notes and try again.",
         )
     return document.write_pdf()

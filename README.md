@@ -64,6 +64,8 @@ The output contracts are strict:
   Communion notices under the selected Grace/Zion events heading and the
   Baptized Today announcement under Grace;
 - insert: exactly one 11 x 8.5 inch landscape page with two half-sheet panels.
+  Busy inserts automatically reduce body text and vertical spacing from the
+  usual 10-point size down to 7 points as needed before reporting overflow.
 - large-print booklet: exactly four 17 x 11 inch landscape pages, imposed as
   two duplex Tabloid sheets in `8|1, 2|7, 6|3, 4|5` logical-page order.
 - Grace PowerPoint: editable 4:3 slides cloned from the supplied service
