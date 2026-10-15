@@ -52,7 +52,11 @@ if include.strip() not in text:
 PY
 nginx -t
 systemctl reload nginx
+# Reload signals the master asynchronously. An immediate connection may still
+# reach an old worker and get the portal's 404 before the new routes are live.
+# Retry HTTP errors as well as connection errors before deciding to roll back.
 curl --fail --silent --show-error --max-time 10 \
+    --retry 10 --retry-delay 1 --retry-all-errors \
     --cacert /var/www/grace-free/grace-free-root-ca.crt \
     --resolve home.grace:443:127.0.0.1 https://home.grace/bulletin/healthz
 curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/healthz

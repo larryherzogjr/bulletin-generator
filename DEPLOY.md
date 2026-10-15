@@ -221,7 +221,8 @@ The installer verifies the mounted app is healthy, backs up the nginx site and
 any prior bulletin snippet, installs `deploy/nginx-home.grace.conf` as
 `/etc/nginx/snippets/bulletin-generator.conf`, and includes it alongside the
 announcements snippet in the existing home.grace TLS server. It validates nginx
-before reloading and checks both HTTPS and direct health endpoints. A failure
+before reloading and checks both HTTPS and direct health endpoints. The HTTPS
+check retries while nginx's new workers take over after the reload. A failure
 restores the previous nginx configuration. Re-running the installer does not
 duplicate the include. It uses the existing home.grace certificate and local CA.
 
