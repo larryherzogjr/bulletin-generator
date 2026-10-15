@@ -68,7 +68,9 @@ exact shape. Split conceptually into:
 - prelude (list of (who, names))
 - call_to_worship
 - order_of_service (page refs; varies by setting — italicize hymnal names)
-- confession_of_faith (rotates: Apostles' / Nicene / Athanasian)
+- confession_of_faith (Apostles' / Nicene / Athanasian, or empty for Different)
+- grace_confession_of_faith (Grace PowerPoint creed when Different is selected;
+  the bulletin retains the generic CONFESSION OF FAITH heading)
 - memory_verse_ref + memory_verse_text (shared with the insert)
 - scripture_lessons (list of (ref, "G-pg …; Z-pg …"))
 - scripture_text_source (manual text, or transient official ESV lookup)

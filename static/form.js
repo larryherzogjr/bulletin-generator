@@ -559,6 +559,16 @@
   syncEsvMode();
   if (esvSource.value === "esv") loadEsvScripture();
 
+  // ---- separate Grace creed when the churches use different confessions --
+  function syncGraceCreed() {
+    const creed = form.querySelector('input[name="confession_of_faith"]:checked');
+    form.querySelector('[data-grace-creed]').hidden = !creed || creed.value !== "";
+  }
+  syncGraceCreed();
+  form.addEventListener("change", function (event) {
+    if (event.target.matches('input[name="confession_of_faith"]')) syncGraceCreed();
+  });
+
   // ---- optional sections: reflect enabled state visually -----------------
   function syncOptional(block) {
     block.classList.toggle("on", block.querySelector("[data-enable]").checked);

@@ -568,8 +568,11 @@ function requireText(value, label) {
 export async function generatePresentation(blob, outputPath) {
   const weekly = blob?.weekly ?? {};
   const largePrint = weekly?.large_print ?? {};
-  const template = CREED_TEMPLATES[weekly.confession_of_faith];
-  if (!template) throw new Error("Select the Apostles’, Nicene, or Athanasian Creed before generating the PowerPoint.");
+  const creed = weekly.confession_of_faith === ""
+    ? weekly.grace_confession_of_faith
+    : weekly.confession_of_faith;
+  const template = CREED_TEMPLATES[creed];
+  if (!template) throw new Error("Select the Apostles’, Nicene, or Athanasian Creed for Grace before generating the PowerPoint. When Different is selected, use Confession for Grace (PowerPoint).");
 
   const lessons = Array.isArray(weekly.scripture_lessons) ? weekly.scripture_lessons : [];
   if (lessons.length < 2) throw new Error("Add two scripture lesson references before generating the PowerPoint.");

@@ -90,6 +90,16 @@ def test_large_print_booklet_has_tabloid_imposition_and_full_text(sample_blob):
     assert "Praise God from Whom all blessings flow" in text
 
 
+@pytest.mark.parametrize("grace_creed", ["Apostles' Creed", "Nicene Creed", "Athanasian Creed"])
+def test_different_confession_keeps_bulletin_heading_generic(sample_blob, grace_creed):
+    weekly = deepcopy(sample_blob["weekly"])
+    weekly["confession_of_faith"] = ""
+    weekly["grace_confession_of_faith"] = grace_creed
+    html = render_bulletin_html(weekly, sample_blob["standing"])
+    assert '<div class="label">CONFESSION OF FAITH</div>' in html
+    assert "CONFESSION OF FAITH ~" not in html
+
+
 def test_large_print_uses_the_selected_editable_creed(sample_blob):
     weekly = deepcopy(sample_blob["weekly"])
     standing = deepcopy(sample_blob["standing"])

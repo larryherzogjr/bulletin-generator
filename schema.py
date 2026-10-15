@@ -12,7 +12,9 @@ Shape (three sections, matching the render functions):
 
   weekly:
     liturgical_day, date, call_to_worship, order_of_service,
-    confession_of_faith (one of CREEDS), food_at_grace, preacher, sermon_text,
+    confession_of_faith (one of CREEDS, or "" for Different),
+    grace_confession_of_faith (one of CREEDS, or "" until selected),
+    food_at_grace, preacher, sermon_text,
     scripture_text_source ("manual" or transient "esv"),
     memory_verse_ref, memory_verse_text,                  # shared w/ insert
     grace_events_banner, zion_events_banner               # str
@@ -52,7 +54,7 @@ from copy import deepcopy
 # Stored blobs without a version are legacy version 0. Normalizing them applies
 # the existing prayer/hymn migrations and upgrades them to this version. A blob
 # from a newer application is rejected instead of silently losing unknown data.
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 
 DEFAULT_BAPTISM_BULLETIN_TEXT = (
     "Johnny Smith, son of Doug & Wanda Smith will be brought to the Lord in "
@@ -208,6 +210,7 @@ def blank_blob() -> dict:
             "call_to_worship": "",
             "order_of_service": "",
             "confession_of_faith": CREEDS[0],
+            "grace_confession_of_faith": "",
             "food_at_grace": False,
             "memory_verse_ref": "",
             "memory_verse_text": "",
@@ -503,6 +506,15 @@ def _migrate_v5_to_v6(migrated: dict) -> dict:
     return migrated
 
 
+def _migrate_v6_to_v7(migrated: dict) -> dict:
+    """Add a separate Grace PowerPoint creed without guessing for old weeks."""
+    weekly = migrated.get("weekly")
+    if isinstance(weekly, dict):
+        weekly.setdefault("grace_confession_of_faith", "")
+    migrated["schema_version"] = 7
+    return migrated
+
+
 _MIGRATIONS = {
     0: _migrate_v0_to_v1,
     1: _migrate_v1_to_v2,
@@ -510,6 +522,7 @@ _MIGRATIONS = {
     3: _migrate_v3_to_v4,
     4: _migrate_v4_to_v5,
     5: _migrate_v5_to_v6,
+    6: _migrate_v6_to_v7,
 }
 
 
@@ -553,10 +566,12 @@ def normalize_blob(blob: dict) -> dict:
         w[k] = _s(w_in.get(k))
     source = _s(w_in.get("scripture_text_source")).lower()
     w["scripture_text_source"] = source if source in {"manual", "esv"} else "manual"
-    # Confession of Faith: one of CREEDS, or "" for "None" (renders the heading
+    # Confession of Faith: one of CREEDS, or "" for "Different" (renders the heading
     # alone, no "~ Creed" suffix). Any other value falls back to the default.
     creed = _s(w_in.get("confession_of_faith"))
     w["confession_of_faith"] = creed if creed in CREEDS or creed == "" else CREEDS[0]
+    grace_creed = _s(w_in.get("grace_confession_of_faith"))
+    w["grace_confession_of_faith"] = grace_creed if grace_creed in CREEDS else ""
     w["food_at_grace"] = _bool(w_in.get("food_at_grace"))
     w["prelude"] = _pairs(w_in.get("prelude"))
     w["scripture_lessons"] = _pairs(w_in.get("scripture_lessons"))

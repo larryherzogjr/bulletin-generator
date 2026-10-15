@@ -67,6 +67,29 @@ def test_food_at_grace_checkbox_is_shown_and_preserves_checked_state(client, sam
     )
 
 
+def test_different_confession_shows_and_saves_grace_selector(client, sample_blob):
+    week_id = _seed(client)
+    edit = client.get(f"/weeks/{week_id}/edit")
+    assert re.search(rb'name="confession_of_faith" value=""[^>]*>\s*Different', edit.data)
+    assert re.search(rb'<div[^>]*data-grace-creed[^>]*hidden', edit.data)
+
+    payload = deepcopy(sample_blob)
+    payload["weekly"]["confession_of_faith"] = ""
+    payload["weekly"]["grace_confession_of_faith"] = "Athanasian Creed"
+    assert client.post(f"/weeks/{week_id}", json=payload).status_code == 200
+    edit = client.get(f"/weeks/{week_id}/edit")
+    assert re.search(rb'name="confession_of_faith" value=""[^>]*checked', edit.data)
+    assert not re.search(rb'<div[^>]*data-grace-creed[^>]*hidden', edit.data)
+    assert re.search(rb'<option value="Athanasian Creed"[^>]*selected', edit.data)
+
+    # Switching to a shared creed hides, but remembers, the Grace choice.
+    payload["weekly"]["confession_of_faith"] = "Nicene Creed"
+    assert client.post(f"/weeks/{week_id}", json=payload).status_code == 200
+    edit = client.get(f"/weeks/{week_id}/edit")
+    assert re.search(rb'<div[^>]*data-grace-creed[^>]*hidden', edit.data)
+    assert re.search(rb'<option value="Athanasian Creed"[^>]*selected', edit.data)
+
+
 def test_week_can_be_protected_and_then_cannot_be_deleted(client):
     week_id = _seed(client)
 

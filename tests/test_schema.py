@@ -15,6 +15,7 @@ def test_blank_blob_has_complete_versioned_shape():
     assert blob["schema_version"] == CURRENT_SCHEMA_VERSION
     assert set(blob) == {"schema_version", "weekly", "standing", "insert"}
     assert blob["weekly"]["confession_of_faith"] == CREEDS[0]
+    assert blob["weekly"]["grace_confession_of_faith"] == ""
     assert blob["weekly"]["food_at_grace"] is False
     assert blob["weekly"]["scripture_text_source"] == "manual"
     assert len(blob["insert"]["prayer"]) == 3
@@ -99,6 +100,31 @@ def test_invalid_scripture_source_falls_back_to_manual():
     blob["weekly"]["scripture_text_source"] = "unknown"
 
     assert normalize_blob(blob)["weekly"]["scripture_text_source"] == "manual"
+
+
+@pytest.mark.parametrize("creed", CREEDS + ["", "invalid", None])
+def test_grace_creed_is_normalized_and_preserved(creed):
+    blob = blank_blob()
+    blob["weekly"]["confession_of_faith"] = ""
+    blob["weekly"]["grace_confession_of_faith"] = creed
+    normalized = normalize_blob(blob)
+    assert normalized["weekly"]["confession_of_faith"] == ""
+    assert normalized["weekly"]["grace_confession_of_faith"] == (
+        creed if creed in CREEDS else ""
+    )
+    assert normalize_blob(normalized) == normalized
+
+
+def test_legacy_none_migrates_to_different_without_guessing_grace_creed():
+    blob = blank_blob()
+    blob["schema_version"] = 6
+    blob["weekly"]["confession_of_faith"] = ""
+    del blob["weekly"]["grace_confession_of_faith"]
+    normalized = normalize_blob(blob)
+    assert normalized["schema_version"] == CURRENT_SCHEMA_VERSION
+    assert normalized["weekly"]["confession_of_faith"] == ""
+    assert normalized["weekly"]["grace_confession_of_faith"] == ""
+    assert "grace_confession_of_faith" not in blob["weekly"]
 
 
 def test_food_at_grace_is_normalized_as_a_boolean():

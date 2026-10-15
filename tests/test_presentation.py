@@ -224,11 +224,21 @@ def test_food_at_grace_appends_table_prayer_between_blank_slides(sample_blob):
             "I believe in one God, the Father Almighty",
             "Whoever wishes to be saved",
         ),
+        (
+            "Athanasian Creed",
+            "Whoever wishes to be saved",
+            "I believe in one God, the Father Almighty",
+        ),
     ],
 )
-def test_selected_creed_uses_its_static_template(sample_blob, creed, expected, excluded):
+@pytest.mark.parametrize("different", [False, True])
+def test_selected_creed_uses_its_static_template(sample_blob, creed, expected, excluded, different):
     blob = deepcopy(sample_blob)
-    blob["weekly"]["confession_of_faith"] = creed
+    blob["weekly"]["confession_of_faith"] = "" if different else creed
+    # An old separate choice must not override the shared selection.
+    blob["weekly"]["grace_confession_of_faith"] = creed if different else (
+        "Nicene Creed" if creed != "Nicene Creed" else "Athanasian Creed"
+    )
     pptx = render_grace_presentation(blob)
     archive, _presentation, parts = _ordered_slides(pptx)
     text = "\n".join(

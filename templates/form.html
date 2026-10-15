@@ -81,8 +81,19 @@
         <label class="radio">
           <input type="radio" name="confession_of_faith" value=""
                  {% if not data.weekly.confession_of_faith %}checked{% endif %}>
-          None
+          Different
         </label>
+        <div class="grace-creed" data-grace-creed {% if data.weekly.confession_of_faith %}hidden{% endif %}>
+          <label>Confession for Grace (PowerPoint)
+            <select data-key="weekly.grace_confession_of_faith">
+              <option value="">Select a confession</option>
+              {% for creed in creeds %}
+              <option value="{{ creed }}" {% if data.weekly.grace_confession_of_faith == creed %}selected{% endif %}>{{ creed }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <p class="hint">The bulletin will show only CONFESSION OF FAITH.</p>
+        </div>
       </fieldset>
 
       <div class="optional" data-optional="weekly.baptism">

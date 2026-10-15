@@ -94,6 +94,11 @@ comparable week and use the sticky section navigation to edit the changed conten
 The bottom bar shows save status beside **Save**; **Preview & download** also
 saves pending changes before opening the four output cards.
 
+Choose **Different** under Confession of Faith when the churches use different
+confessions, then select **Confession for Grace (PowerPoint)**. The bulletin
+prints only **CONFESSION OF FAITH**, while the Grace PowerPoint includes the
+selected creed. A shared confession uses the main selection for both outputs.
+
 Hymn lyrics expand directly below each Grace hymn; full Scripture passages expand
 beside their references in the Scripture section. Standing responses and creed
 wording live under **Standing info**. Select text and use the **B**, **I**, or **U**
