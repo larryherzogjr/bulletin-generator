@@ -39,6 +39,7 @@ from urllib.parse import urlsplit
 from flask import (
     Flask, Response, abort, jsonify, redirect, render_template, request, url_for,
 )
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 import db
 from esv import (
@@ -59,6 +60,12 @@ from render import (
 )
 
 app = Flask(__name__)
+# Serve the same app at both the original root and the nginx /bulletin mount.
+# Dispatch on the actual path rather than trusting forwarded-prefix headers on
+# a service that also accepts direct LAN connections. SCRIPT_NAME keeps every
+# url_for link, form action, redirect, and JavaScript endpoint in its mount.
+_root_app = app.wsgi_app
+app.wsgi_app = DispatcherMiddleware(_root_app, {"/bulletin": _root_app})
 app.config["MAX_CONTENT_LENGTH"] = int(
     os.environ.get("BULLETIN_MAX_CONTENT_LENGTH", 1024 * 1024)
 )

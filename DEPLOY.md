@@ -197,10 +197,47 @@ before reopening access.
 ## Network boundary
 
 Port 8000 is intended only for the trusted LAN/VPN. Restrict it at the host and
-network firewalls and do not forward it from the public internet. If the app is
-later placed behind nginx or Caddy, change Gunicorn to a loopback bind and have
-the proxy provide HTTPS and authentication, preserve the original `Host`
-header, and avoid caching edit or PDF responses containing parish data.
+network firewalls and do not forward it from the public internet. nginx adds
+HTTPS access through `https://home.grace/bulletin/` while Gunicorn keeps its
+`0.0.0.0:8000` bind for existing direct LAN access. Both entry points serve the
+same database and retain the app's existing access model.
+
+### Add the home.grace nginx route
+
+Deploy the application update first using the normal workflow above. The app
+serves both `/` and `/bulletin/`; its WSGI dispatcher sets `SCRIPT_NAME` from
+the actual path so links, form actions, redirects, static files, ESV requests,
+and downloads keep the correct prefix. It does not trust forwarded host or
+prefix headers from direct clients.
+
+On the existing VM (`lherzog@10.20.30.45`), run:
+
+```sh
+cd /opt/bulletin-generator
+sudo bash deploy/install-nginx.sh
+```
+
+The installer verifies the mounted app is healthy, backs up the nginx site and
+any prior bulletin snippet, installs `deploy/nginx-home.grace.conf` as
+`/etc/nginx/snippets/bulletin-generator.conf`, and includes it alongside the
+announcements snippet in the existing home.grace TLS server. It validates nginx
+before reloading and checks both HTTPS and direct health endpoints. A failure
+restores the previous nginx configuration. Re-running the installer does not
+duplicate the include. It uses the existing home.grace certificate and local CA.
+
+`/bulletin` redirects to `/bulletin/`. The proxy preserves the `/bulletin` path
+and Host header, disables caching and upstream retries, and allows up to 300
+seconds for rendering (Gunicorn's worker timeout remains 120 seconds).
+The request limit remains 1 MiB; if raising `BULLETIN_MAX_CONTENT_LENGTH`, raise
+`client_max_body_size` in the snippet as well. Keep `proxy_pass` without a
+trailing slash so nginx preserves the prefix.
+
+Check from a LAN client that trusts the church's CA:
+
+```sh
+curl --fail https://home.grace/bulletin/healthz
+curl --fail http://10.20.30.45:8000/healthz
+```
 
 The app rejects browser requests marked cross-site and POST requests whose
 Origin/Referer host differs from the requested host. The default JSON request

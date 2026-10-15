@@ -163,8 +163,9 @@ rejected and JSON submissions default to a 1 MiB ceiling, configurable with
 `BULLETIN_MAX_CONTENT_LENGTH`.
 
 Restrict port 8000 to the intended LAN/VPN and do not expose it to the public
-internet. If the app is later placed behind nginx or Caddy, bind Gunicorn to
-loopback and require HTTPS and authentication at the reverse proxy.
+internet. nginx additionally serves the same app at
+`https://home.grace/bulletin/`, with links and downloads under that prefix.
+Gunicorn keeps its `0.0.0.0:8000` bind so direct LAN access continues to work.
 
 See `DEPLOY.md` for installation, automated backup/preflight/rollback behavior,
 and recovery commands. `SPEC.md` records the print and product decisions.
