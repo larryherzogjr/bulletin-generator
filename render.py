@@ -243,13 +243,28 @@ def _bulletin_fits(document) -> bool:
     )
 
 
-def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
+def _print_ready_pdf(pdf: bytes, *, blank_front: bool) -> bytes:
+    """Prepare a fitted landscape sheet for duplex printing."""
+    page = PdfReader(BytesIO(pdf)).pages[0]
+    writer = PdfWriter()
+    if blank_front:
+        writer.add_blank_page(width=page.mediabox.width, height=page.mediabox.height)
+    else:
+        writer.add_page(page)
+    writer.add_page(page)
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def render_bulletin_pdf(weekly: dict, standing: dict, *, print_ready: bool = False) -> bytes:
     """Bulletin -> PDF bytes. One page, 11x8.5 landscape, single-sided.
 
     Auto shrink-to-fit: render at full size; if the content spills to a second
     page OR overflows a panel's fixed height (which would clip at print time),
     step the scale down (to _MIN_SCALE) until it fits. The common case (already
-    fits) renders once at scale 1.0 with no extra cost.
+    fits) renders once at scale 1.0 with no extra cost. Print Ready prepends a
+    blank page for duplex printing onto the pre-printed stock.
     """
     scale = 1.0
     document = HTML(
@@ -267,11 +282,12 @@ def render_bulletin_pdf(weekly: dict, standing: dict) -> bytes:
             "sheet at the minimum legible size. Shorten the worship, events, "
             "or standing text and try again.",
         )
-    return document.write_pdf()
+    pdf = document.write_pdf()
+    return _print_ready_pdf(pdf, blank_front=True) if print_ready else pdf
 
 
-def render_insert_pdf(insert: dict) -> bytes:
-    """Fit two insert panels on one landscape sheet, reducing type as needed."""
+def render_insert_pdf(insert: dict, *, print_ready: bool = False) -> bytes:
+    """Fit two insert panels on one sheet; Print Ready repeats it for duplex."""
     def render_at(scale):
         return HTML(
             string=render_insert_html(insert, scale), base_url=str(BASE_DIR)
@@ -296,7 +312,8 @@ def render_insert_pdf(insert: dict) -> bytes:
             "Shorten the prayer list, readings, announcements, "
             "or bold notes and try again.",
         )
-    return document.write_pdf()
+    pdf = document.write_pdf()
+    return _print_ready_pdf(pdf, blank_front=False) if print_ready else pdf
 
 
 def _required_large_print_text(weekly: dict, standing: dict) -> None:

@@ -340,6 +340,11 @@ button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visibl
 .gen-card { display: flex; flex-direction: column; margin: 0; padding: 1.3rem; }
 .gen-actions { margin-top: auto; padding-top: 1.2rem; flex-wrap: wrap; }
 .gen-actions .btn { min-height: 2.6rem; }
+.gen-actions .print-ready {
+  display: inline-flex; align-items: center; gap: .5rem; margin-left: auto;
+  font-size: .9rem; white-space: nowrap; cursor: pointer;
+}
+.print-ready input { width: 1.1rem; height: 1.1rem; margin: 0; cursor: pointer; }
 .duplex-callout { font-size: .9rem; }
 
 @media (max-width: 48rem) {

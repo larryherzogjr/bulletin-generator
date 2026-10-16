@@ -397,7 +397,9 @@ def bulletin_pdf(week_id: int):
         conn.close()
     d = week["data"]
     d = hydrate_esv_scripture(d)
-    pdf = render_bulletin_pdf(d["weekly"], d["standing"])
+    pdf = render_bulletin_pdf(
+        d["weekly"], d["standing"], print_ready=request.args.get("print_ready") == "1"
+    )
     return _pdf_response(pdf, "bulletin", week["label"])
 
 
@@ -409,7 +411,7 @@ def insert_pdf(week_id: int):
     finally:
         conn.close()
     d = hydrate_esv_scripture(week["data"])
-    pdf = render_insert_pdf(d["insert"])
+    pdf = render_insert_pdf(d["insert"], print_ready=request.args.get("print_ready") == "1")
     return _pdf_response(pdf, "insert", week["label"])
 
 

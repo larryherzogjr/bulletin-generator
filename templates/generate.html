@@ -22,10 +22,13 @@
       <h2>Bulletin</h2>
       <p class="spec">One page · 11 × 8.5 in landscape · single-sided.</p>
       <p class="spec muted">Print onto the pre-printed bulletin stock.</p>
-      <div class="gen-actions">
-        <a class="btn primary" href="{{ url_for('bulletin_pdf', week_id=week.id, dl=1) }}">Download bulletin</a>
-        <a class="btn" href="{{ url_for('bulletin_pdf', week_id=week.id) }}" target="_blank">Preview</a>
-      </div>
+      <form class="gen-actions" method="get" action="{{ url_for('bulletin_pdf', week_id=week.id) }}">
+        <button class="btn primary" type="submit" name="dl" value="1">Download bulletin</button>
+        <button class="btn" type="submit" formtarget="_blank">Preview</button>
+        <label class="print-ready" title="Add a blank first page before the bulletin content.">
+          Print Ready <input type="checkbox" name="print_ready" value="1" aria-label="Print Ready bulletin">
+        </label>
+      </form>
     </section>
 
     <!-- ---- Insert ---- -->
@@ -36,10 +39,13 @@
         <strong>Print on Letter paper in landscape orientation.</strong>
         The announcements and Message &amp; Notes sides are arranged side-by-side.
       </div>
-      <div class="gen-actions">
-        <a class="btn primary" href="{{ url_for('insert_pdf', week_id=week.id, dl=1) }}">Download insert</a>
-        <a class="btn" href="{{ url_for('insert_pdf', week_id=week.id) }}" target="_blank">Preview</a>
-      </div>
+      <form class="gen-actions" method="get" action="{{ url_for('insert_pdf', week_id=week.id) }}">
+        <button class="btn primary" type="submit" name="dl" value="1">Download insert</button>
+        <button class="btn" type="submit" formtarget="_blank">Preview</button>
+        <label class="print-ready" title="Repeat the insert on a second page for double-sided printing and cutting.">
+          Print Ready <input type="checkbox" name="print_ready" value="1" aria-label="Print Ready insert">
+        </label>
+      </form>
     </section>
 
     <!-- ---- Large-print booklet ---- -->

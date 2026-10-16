@@ -33,7 +33,8 @@ def test_mount_workflow(client, sample_blob, monkeypatch, prefix):
                        headers={"Origin": "https://other.example"}).status_code == 403
 
     generate = client.get(week_url + "/generate", base_url=base)
-    assert f'href="{week_url}/bulletin.pdf?dl=1"'.encode() in generate.data
+    assert f'action="{week_url}/bulletin.pdf"'.encode() in generate.data
+    assert f'action="{week_url}/insert.pdf"'.encode() in generate.data
     monkeypatch.setattr(app_module, "render_bulletin_pdf", lambda *args, **kwargs: b"%PDF-test")
     pdf = client.get(week_url + "/bulletin.pdf?dl=1", base_url=base)
     assert pdf.status_code == 200

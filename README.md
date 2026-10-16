@@ -58,7 +58,13 @@ make verify    # tests followed by the sample build
 make check     # active DB integrity/schema plus sample/latest output render
 ```
 
-The output contracts are strict:
+The Bulletin and Insert download cards each have an unchecked **Print Ready**
+option that applies to both Download and Preview. When selected, the bulletin
+has a blank first page followed by its content, and the insert repeats its
+content on a second page for double-sided printing and cutting. Both retain
+the same 11 x 8.5 inch landscape page size.
+
+The default output contracts are strict:
 
 - bulletin: exactly one 11 x 8.5 inch landscape page. Its right panel places
   Communion notices under the selected Grace/Zion events heading and the

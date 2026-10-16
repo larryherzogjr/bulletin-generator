@@ -1,5 +1,9 @@
 from copy import deepcopy
+from io import BytesIO
 import re
+
+import pytest
+from pypdf import PdfReader
 
 import app as app_module
 import db
@@ -48,6 +52,50 @@ def test_full_http_flow_and_download_headers(client, sample_blob):
     assert "large-print-booklet-first-sunday" in large_print.headers["Content-Disposition"]
 
     assert client.get("/weeks/999/edit").status_code == 404
+
+
+@pytest.mark.parametrize("kind", ["bulletin", "insert"])
+@pytest.mark.parametrize("download", [False, True])
+def test_print_ready_pdf_pages_and_disposition(client, kind, download):
+    week_id = _seed(client)
+    url = f"/weeks/{week_id}/{kind}.pdf"
+    original = PdfReader(BytesIO(client.get(url).data))
+    response = client.get(url, query_string={"print_ready": "1", "dl": "1" if download else "0"})
+    assert response.status_code == 200
+    assert response.content_type == "application/pdf"
+    assert response.headers["Content-Disposition"].startswith(
+        "attachment;" if download else "inline;"
+    )
+    ready = PdfReader(BytesIO(response.data))
+    assert len(original.pages) == 1
+    assert len(ready.pages) == 2
+    assert [(float(p.mediabox.width), float(p.mediabox.height)) for p in ready.pages] == [
+        (792.0, 612.0), (792.0, 612.0)
+    ]
+    # Preserve the exact rendered content, not just the extracted wording.
+    expected = original.pages[0].get_contents().get_data()
+    assert ready.pages[1].get_contents().get_data() == expected
+    assert ready.pages[1].extract_text() == original.pages[0].extract_text()
+    if kind == "bulletin":
+        assert ready.pages[0].extract_text() == ""
+        assert ready.pages[0].get_contents() is None
+    else:
+        assert ready.pages[0].get_contents().get_data() == expected
+        assert ready.pages[0].extract_text() == ready.pages[1].extract_text()
+
+
+def test_download_cards_have_independent_unchecked_print_ready_controls(client):
+    week_id = _seed(client)
+    html = client.get(f"/weeks/{week_id}/generate").data.decode()
+    forms = re.findall(r'<form class="gen-actions"[^>]*>.*?</form>', html, re.DOTALL)
+    assert len(forms) == 2
+    for kind, form in zip(("bulletin", "insert"), forms):
+        assert f'action="/weeks/{week_id}/{kind}.pdf"' in form
+        assert 'method="get"' in form
+        assert 'name="dl" value="1"' in form
+        assert 'formtarget="_blank"' in form
+        assert 'Print Ready <input type="checkbox" name="print_ready" value="1"' in form
+        assert "checked" not in form
 
 
 def test_food_at_grace_checkbox_is_shown_and_preserves_checked_state(client, sample_blob):
