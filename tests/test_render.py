@@ -320,7 +320,7 @@ def test_insert_automatically_shrinks_only_when_needed(
             "body": "Additional announcement content for a busy week. "
             * extra_sentences + "FINAL ANNOUNCEMENT",
         })
-    insert["bold_notes"].append("FINAL INSERT NOTE")
+    insert["bold_notes"][-1] = "FINAL INSERT NOTE"
     scales = []
 
     def record_scale(data, scale=1.0):
