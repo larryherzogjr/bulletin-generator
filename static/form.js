@@ -368,16 +368,52 @@
   const esvSource = form.querySelector("#scripture-text-source");
   const esvButton = form.querySelector("#load-esv-scripture");
   const esvStatus = form.querySelector("#esv-lookup-status");
-  const esvTextTargets = [
+  const fixedScriptureTargets = [
     form.querySelector('[data-key="weekly.large_print.call_to_worship_text"]'),
     form.querySelector('[data-key="weekly.memory_verse_text"]'),
-    form.querySelector('[data-key="weekly.large_print.first_lesson_text"]'),
-    form.querySelector('[data-key="weekly.large_print.second_lesson_text"]'),
   ];
-  const esvLabelTargets = [
-    form.querySelector('[data-key="weekly.large_print.first_lesson_label"]'),
-    form.querySelector('[data-key="weekly.large_print.second_lesson_label"]'),
-  ];
+  const lessonList = form.querySelector('[data-list="weekly.scripture_lessons"]');
+  const lessonTexts = form.querySelector(".lesson-texts");
+  const lessonPanels = new WeakMap();
+
+  function lessonRows() {
+    return Array.from(lessonList.children);
+  }
+
+  function activeLessonRows() {
+    return lessonRows().filter(function (row) {
+      return row.querySelector('[data-col="0"]').value.trim() ||
+        row.querySelector('[data-col="1"]').value.trim();
+    });
+  }
+
+  lessonRows().forEach(function (row, index) {
+    lessonPanels.set(row, lessonTexts.children[index]);
+  });
+
+  function syncLessonPanels() {
+    const rows = lessonRows();
+    const panels = rows.map(function (row, index) {
+      let panel = lessonPanels.get(row);
+      if (!panel) {
+        panel = cloneTpl("tpl-lesson-text");
+        lessonPanels.set(row, panel);
+        prepareFormatting(panel);
+      }
+      panel.querySelector("[data-lesson-title]").textContent =
+        "Lesson " + (index + 1) + " text";
+      return panel;
+    });
+    lessonTexts.replaceChildren(...panels);
+    syncEsvMode();
+    scheduleEsvLookup();
+  }
+
+  function scriptureTextTargets(rows) {
+    return fixedScriptureTargets.concat(rows.map(function (row) {
+      return lessonPanels.get(row).querySelector("[data-lesson-text]");
+    }));
+  }
 
   function setEsvStatus(message, className) {
     esvStatus.textContent = message;
@@ -386,19 +422,19 @@
   }
 
   function scriptureReferences() {
-    const lessonRows = Array.from(
-      form.querySelectorAll('[data-list="weekly.scripture_lessons"] > .row')
-    );
     return [
       form.querySelector('[data-key="weekly.call_to_worship"]').value.trim(),
       form.querySelector('[data-key="weekly.memory_verse_ref"]').value.trim(),
-      lessonRows[0] ? lessonRows[0].querySelector('[data-col="0"]').value.trim() : "",
-      lessonRows[1] ? lessonRows[1].querySelector('[data-col="0"]').value.trim() : "",
+      ...activeLessonRows().map(function (row) {
+        return row.querySelector('[data-col="0"]').value.trim();
+      }),
     ];
   }
 
   function updateScripturePreviews() {
-    esvTextTargets.forEach(function (target) {
+    const activeTargets = scriptureTextTargets(activeLessonRows());
+    const current = loadedEsvReferences === JSON.stringify(scriptureReferences());
+    scriptureTextTargets(lessonRows()).forEach(function (target) {
       if (!target._preview) {
         const preview = document.createElement('span');
         preview.className = 'scripture-preview';
@@ -413,8 +449,7 @@
       target._formatToolbar.hidden = automatic;
       target.closest('label').classList.toggle('automatic-scripture', automatic);
       if (automatic) {
-        const current = loadedEsvReferences === JSON.stringify(scriptureReferences());
-        renderFormattedText(target._preview, current ? target.value : 'Waiting for official ESV text. Check the Scripture source status above.');
+        renderFormattedText(target._preview, current && activeTargets.includes(target) ? target.value : 'Waiting for official ESV text. Check the Scripture source status above.');
       }
     });
   }
@@ -423,7 +458,7 @@
     const automatic = esvSource.value === "esv";
     if (!automatic) loadedEsvReferences = null;
     esvButton.disabled = false;
-    esvTextTargets.concat(esvLabelTargets).forEach(function (target) {
+    scriptureTextTargets(lessonRows()).concat(Array.from(lessonTexts.querySelectorAll("[data-lesson-label]"))).forEach(function (target) {
       target.readOnly = automatic;
     });
     esvButton.textContent = automatic
@@ -444,8 +479,9 @@
     const missing = [
       "Call to Worship reference",
       "Memory Verse reference",
-      "first lesson reference",
-      "second lesson reference",
+      ...references.slice(2).map(function (_ref, index) {
+        return "lesson " + (index + 1) + " reference";
+      }),
     ].filter(function (_label, index) { return !references[index]; });
     if (missing.length) {
       setEsvStatus("Add the " + missing.join(", ") + " before loading ESV text.", "error");
@@ -460,39 +496,41 @@
     let lookup;
     lookup = (async function () {
       try {
-        const response = await fetch(form.dataset.esvUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ references: references }),
+        const passages = [];
+        // The preview endpoint accepts up to four references per request.
+        for (let start = 0; start < references.length; start += 4) {
+          const batch = references.slice(start, start + 4);
+          const response = await fetch(form.dataset.esvUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ references: batch }),
+          });
+          const result = await response.json();
+          if (
+            requestVersion !== esvRequestVersion ||
+            referenceSnapshot !== JSON.stringify(scriptureReferences()) ||
+            esvSource.value !== "esv"
+          ) {
+            return false;
+          }
+          if (!response.ok || !result.ok) {
+            throw new Error(result.error || "ESV lookup failed (HTTP " + response.status + ")");
+          }
+          if (!Array.isArray(result.passages) || result.passages.length !== batch.length) {
+            throw new Error("The ESV lookup returned an incomplete response.");
+          }
+          passages.push(...result.passages);
+        }
+        const rows = activeLessonRows();
+        scriptureTextTargets(rows).forEach(function (target, index) {
+          target.value = passages[index].text;
         });
-        let result;
-        try {
-          result = await response.json();
-        } catch (_err) {
-          result = { ok: false, error: "ESV lookup failed (HTTP " + response.status + ")" };
-        }
-        if (!response.ok || !result.ok) {
-          throw new Error(result.error || "ESV lookup failed");
-        }
-        if (
-          requestVersion !== esvRequestVersion ||
-          referenceSnapshot !== JSON.stringify(scriptureReferences()) ||
-          esvSource.value !== "esv"
-        ) {
-          return false;
-        }
-        if (!Array.isArray(result.passages) || result.passages.length !== 4) {
-          throw new Error("The ESV lookup returned an incomplete response.");
-        }
-        esvTextTargets.forEach(function (target, index) {
-          target.value = result.passages[index].text;
+        rows.forEach(function (row, index) {
+          lessonPanels.get(row).querySelector("[data-lesson-label]").value = passages[index + 2].heading;
         });
         loadedEsvReferences = referenceSnapshot;
-        updateScripturePreviews();
-        esvLabelTargets[0].value = result.passages[2].heading;
-        esvLabelTargets[1].value = result.passages[3].heading;
         setEsvStatus(
-          "Loaded four official ESV passages. They will be refreshed when files are generated.",
+          "Loaded " + passages.length + " official ESV passages. They will be refreshed when files are generated.",
           "loaded"
         );
         return true;
@@ -515,6 +553,8 @@
 
   function scheduleEsvLookup() {
     if (esvSource.value !== "esv") return;
+    esvRequestVersion += 1;
+    esvButton.disabled = false;
     loadedEsvReferences = null;
     updateScripturePreviews();
     if (esvLookupTimer !== null) clearTimeout(esvLookupTimer);
@@ -542,22 +582,12 @@
     if (
       target.matches('[data-key="weekly.call_to_worship"]') ||
       target.matches('[data-key="weekly.memory_verse_ref"]') ||
-      (target.matches('[data-col="0"]') && target.closest('[data-list="weekly.scripture_lessons"]'))
+      (target.matches('[data-col]') && target.closest('[data-list="weekly.scripture_lessons"]'))
     ) {
       scheduleEsvLookup();
     }
   });
-  form.addEventListener("click", function (event) {
-    if (
-      event.target.matches('[data-target="weekly.scripture_lessons"]') ||
-      (event.target.matches(".row-del") && event.target.closest('[data-list="weekly.scripture_lessons"]'))
-    ) {
-      scheduleEsvLookup();
-    }
-  });
-
-  syncEsvMode();
-  if (esvSource.value === "esv") loadEsvScripture();
+  syncLessonPanels();
 
   // ---- separate Grace creed when the churches use different confessions --
   function syncGraceCreed() {
@@ -745,6 +775,7 @@
     const finalIndex = directItems(finalContainer).indexOf(draggedItem);
     if (dragStarted && (finalContainer !== sourceContainer || finalIndex !== sourceIndex)) {
       markDirty();
+      if (finalContainer === lessonList) syncLessonPanels();
     }
     if (dragHandle.hasPointerCapture(e.pointerId)) dragHandle.releasePointerCapture(e.pointerId);
     clearDragState();
@@ -769,6 +800,7 @@
     }
     e.preventDefault();
     markDirty();
+    if (container === lessonList) syncLessonPanels();
     handle.focus();
   });
 
@@ -783,9 +815,13 @@
       );
       const single = container.classList.contains("single");
       container.appendChild(cloneTpl(single ? "tpl-single" : "tpl-pair"));
+      if (container === lessonList) syncLessonPanels();
       markDirty();
     } else if (t.classList.contains("row-del")) {
-      t.closest(".row").remove();
+      const row = t.closest(".row");
+      const isLesson = row.parentElement === lessonList;
+      row.remove();
+      if (isLesson) syncLessonPanels();
       markDirty();
     } else if (t.classList.contains("add-day")) {
       const block = cloneTpl("tpl-event-day");
@@ -832,6 +868,20 @@
     form.querySelectorAll("[data-key]").forEach(function (el) {
       setPath(blob, el.dataset.key, el.type === "checkbox" ? el.checked : el.value);
     });
+
+    const lessonValues = activeLessonRows().map(function (row) {
+      const panel = lessonPanels.get(row);
+      return [
+        panel.querySelector("[data-lesson-label]").value,
+        panel.querySelector("[data-lesson-text]").value,
+      ];
+    });
+    ["first", "second"].forEach(function (key, index) {
+      const [label, text] = lessonValues[index] || ["", ""];
+      setPath(blob, "weekly.large_print." + key + "_lesson_label", label);
+      setPath(blob, "weekly.large_print." + key + "_lesson_text", text);
+    });
+    blob.weekly.additional_lesson_texts = lessonValues.slice(2);
 
     // Zion hymn numbers are edited as a bare number plus a hymnal selector,
     // but remain stored in the established display format: "45 (Concordia)".

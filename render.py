@@ -27,7 +27,7 @@ from pypdf import PdfReader, PdfWriter, PageObject, Transformation
 from pypdf.generic import RectangleObject
 from weasyprint import HTML
 
-from schema import CREED_KEYS
+from schema import CREED_KEYS, scripture_lesson_details
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -175,7 +175,7 @@ def render_large_print_content_html(
     return _env.get_template("large_print_content_template.html").render(
         w=weekly,
         lp=weekly.get("large_print", {}),
-        lessons=weekly.get("scripture_lessons", []),
+        lessons=scripture_lesson_details(weekly),
         responses=standing.get("large_print_responses", {}),
         creed_text=creed_text,
         scale=scale,
@@ -322,12 +322,18 @@ def _required_large_print_text(weekly: dict, standing: dict) -> None:
     fields = (
         ("call_to_worship_text", "Call to Worship"),
         ("opening_hymn_text", "first hymn"),
-        ("first_lesson_text", "first scripture lesson"),
-        ("second_lesson_text", "second scripture lesson"),
         ("sermon_hymn_text", "second hymn"),
         ("closing_hymn_text", "third hymn"),
     )
     missing = [label for key, label in fields if not str(lp.get(key, "")).strip()]
+    lessons = scripture_lesson_details(weekly)
+    if not lessons:
+        raise PDFLayoutError("large-print booklet", "Add a Scripture lesson reference.")
+    for index, (reference, _label, text) in enumerate(lessons, start=1):
+        if not reference:
+            raise PDFLayoutError("large-print booklet", f"Add a reference for Scripture lesson {index}.")
+        if not text.strip():
+            missing.append(reference)
     creed = weekly.get("confession_of_faith", "")
     creed_key = CREED_KEYS.get(creed)
     if creed_key and not str(standing.get("creed_texts", {}).get(creed_key, "")).strip():

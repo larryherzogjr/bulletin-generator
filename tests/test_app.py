@@ -1,12 +1,14 @@
 from copy import deepcopy
 from io import BytesIO
 import re
+from zipfile import ZipFile
 
 import pytest
 from pypdf import PdfReader
 
 import app as app_module
 import db
+import esv
 from render import PDFLayoutError
 from presentation import PresentationGenerationError
 from esv import ESVConfigurationError, ESVPassage
@@ -316,3 +318,45 @@ def test_saving_automatic_esv_mode_does_not_store_passage_text(client, sample_bl
     assert stored["weekly"]["memory_verse_text"] == ""
     assert stored["weekly"]["large_print"]["first_lesson_text"] == ""
     assert stored["insert"]["memory_verse_text"] == ""
+
+
+@pytest.mark.parametrize("references", [
+    ["Amos 5:18-24"],
+    ["Amos 5:18-24", "1 Thessalonians 4:13-14", "Matthew 25:1-13"],
+])
+def test_automatic_esv_exports_every_lesson(client, sample_blob, monkeypatch, references):
+    week_id = _seed(client)
+    payload = deepcopy(sample_blob)
+    weekly = payload["weekly"]
+    weekly["scripture_text_source"] = "esv"
+    weekly["scripture_lessons"] = [[reference, ""] for reference in references]
+    weekly["additional_lesson_texts"] = [["Stale label", "Stale passage."]]
+    fetched = []
+
+    def fetch(reference):
+        fetched.append(reference)
+        return ESVPassage(reference, reference, f"Passage for {reference}. (ESV)")
+
+    monkeypatch.setattr(esv, "fetch_esv_passage", fetch)
+    assert client.post(f"/weeks/{week_id}", json=payload).status_code == 200
+    edit = client.get(f"/weeks/{week_id}/edit")
+    assert edit.data.count(b"data-lesson-text rows") == len(references) + 1  # Includes the template.
+    assert b"Stale passage." not in edit.data
+
+    booklet = client.get(f"/weeks/{week_id}/large-print.pdf")
+    assert booklet.status_code == 200
+    pdf_text = " ".join(" ".join(
+        page.extract_text() for page in PdfReader(BytesIO(booklet.data)).pages
+    ).split())
+    deck = client.get(f"/weeks/{week_id}/grace-presentation.pptx")
+    assert deck.status_code == 200
+    with ZipFile(BytesIO(deck.data)) as archive:
+        slide_xml = b"".join(
+            archive.read(name) for name in archive.namelist()
+            if re.fullmatch(r"ppt/slides/slide\d+\.xml", name)
+        )
+    for reference in references:
+        passage = f"Passage for {reference}."
+        assert passage in pdf_text
+        assert passage.encode() in slide_xml
+    assert fetched == [weekly["call_to_worship"], weekly["memory_verse_ref"], *references] * 2

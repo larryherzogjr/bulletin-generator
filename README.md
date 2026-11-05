@@ -115,8 +115,8 @@ Entering a Grace hymn number loads all verses from the Ambassador hymn library
 into the corresponding editable lyrics field.
 Untouched library text is replaced automatically when a cloned week's hymn
 number changes; manually edited verse selections require an explicit replace.
-Selecting **Automatic ESV** loads the Call to Worship, Memory Verse, and first
-two Scripture lessons from Crossway's official API. The API key stays on the
+Selecting **Automatic ESV** loads the Call to Worship, Memory Verse, and all
+Scripture lessons from Crossway's official API. The API key stays on the
 server, generated files omit visible verse numbers, and automatic ESV text is
 fetched transiently instead of being accumulated in SQLite. Register for a key
 at [api.esv.org](https://api.esv.org/) and set it before starting the app:

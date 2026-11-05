@@ -39,9 +39,6 @@
   {% if hymn.grace.num %}Hymn #{{ hymn.grace.num }}{% else %}{{ fallback }}{% endif %}
   {% if hymn.grace.title %}&nbsp;&nbsp;&ldquo;{{ hymn.grace.title }}&rdquo;{% endif %}
 {%- endmacro %}
-{% macro lesson_heading(label, lesson) -%}
-  {{ label }}{% if lesson %}:&nbsp; {{ lesson[0] }}{% endif %}
-{%- endmacro %}
 
 <section class="section">
   <h1 class="heading">Call to Worship{% if w.call_to_worship %}: {{ w.call_to_worship }}{% endif %}</h1>
@@ -55,17 +52,14 @@
 
 {% if responses.kyrie %}<div class="response">{{ responses.kyrie }}</div>{% endif %}
 
+{% for ref, label, text in lessons %}
 <section class="section">
-  <h1 class="heading">{{ lesson_heading(lp.first_lesson_label, lessons[0] if lessons|length > 0 else none) }}</h1>
-  <div class="text scripture-text">{{ lp.first_lesson_text|scripture_visible }}</div>
+  <h1 class="heading">{{ label or "Scripture Lesson" }}:&nbsp; {{ ref }}</h1>
+  <div class="text scripture-text">{{ text|scripture_visible }}</div>
 </section>
+{% endfor %}
 
-<section class="section">
-  <h1 class="heading">{{ lesson_heading(lp.second_lesson_label, lessons[1] if lessons|length > 1 else none) }}</h1>
-  <div class="text scripture-text">{{ lp.second_lesson_text|scripture_visible }}</div>
-</section>
-
-{% if responses.gospel %}<div class="response">{{ responses.gospel }}</div>{% endif %}
+{% if lessons and responses.gospel %}<div class="response">{{ responses.gospel }}</div>{% endif %}
 
 {% if w.confession_of_faith %}
 <section class="section creed">

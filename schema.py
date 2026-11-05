@@ -20,6 +20,7 @@ Shape (three sections, matching the render functions):
     grace_events_banner, zion_events_banner               # str
     prelude:           [[who, names], ...]
     scripture_lessons: [[ref, pages], ...]
+    additional_lesson_texts: [[label, text], ...] for lessons after the first two
     baptism:           {enabled, text, bulletin_text}
     opening_hymn/sermon_hymn/closing_hymn:
       {grace: {num, title}, zion: {num, title}}
@@ -218,6 +219,7 @@ def blank_blob() -> dict:
             # fetched transiently from Crossway and never persisted.
             "scripture_text_source": "manual",
             "scripture_lessons": [],
+            "additional_lesson_texts": [],
             # Optional sections. Each has an `enabled` flag; when off they don't
             # render at all. Baptism has short worship-panel names plus its
             # events-panel announcement; Confirmation has one free-form line.
@@ -310,6 +312,19 @@ def _pairs(rows) -> list:
         if a or b:
             out.append([a, b])
     return out
+
+
+def scripture_lesson_details(weekly: dict) -> list:
+    """Combine lesson references and text, including legacy first/second fields."""
+    large_print = weekly.get("large_print", {})
+    texts = [
+        [large_print.get(f"{key}_lesson_label", ""), large_print.get(f"{key}_lesson_text", "")]
+        for key in ("first", "second")
+    ] + weekly.get("additional_lesson_texts", [])
+    return [
+        (ref, *(texts[index] if index < len(texts) else ("", "")))
+        for index, (ref, _pages) in enumerate(weekly.get("scripture_lessons", []))
+    ]
 
 
 def _str_list(items) -> list:
@@ -575,6 +590,13 @@ def normalize_blob(blob: dict) -> dict:
     w["food_at_grace"] = _bool(w_in.get("food_at_grace"))
     w["prelude"] = _pairs(w_in.get("prelude"))
     w["scripture_lessons"] = _pairs(w_in.get("scripture_lessons"))
+    extras = w_in.get("additional_lesson_texts")
+    if isinstance(extras, list):
+        for row in extras[:max(0, len(w["scripture_lessons"]) - 2)]:
+            w["additional_lesson_texts"].append(
+                [_s(row[0]), _s(row[1])]
+                if isinstance(row, (list, tuple)) and len(row) >= 2 else ["", ""]
+            )
     w["baptism"] = _baptism(w_in.get("baptism"))
     for h in _HYMNS:
         w[h] = _hymn(w_in.get(h))

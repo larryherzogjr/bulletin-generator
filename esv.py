@@ -188,8 +188,8 @@ def fetch_esv_passage(
 
 
 def lookup_esv_passages(references: list[str]) -> list[ESVPassage]:
-    if not isinstance(references, list) or not 1 <= len(references) <= 4:
-        raise ESVLookupError("Request between one and four Scripture references.", 400)
+    if not isinstance(references, list) or not references:
+        raise ESVLookupError("Request at least one Scripture reference.", 400)
     return [fetch_esv_passage(reference) for reference in references]
 
 
@@ -276,6 +276,7 @@ def strip_transient_esv_text(data: dict) -> dict:
         "second_lesson_text",
     ):
         large_print[key] = ""
+    weekly["additional_lesson_texts"] = []
     cleaned.get("insert", {})["memory_verse_text"] = ""
     return cleaned
 
@@ -286,37 +287,37 @@ def hydrate_esv_scripture(data: dict, lookup=None) -> dict:
         return data
     weekly = data.get("weekly", {})
     lessons = weekly.get("scripture_lessons", [])
-    if not isinstance(lessons, list) or len(lessons) < 2:
-        raise ESVLookupError(
-            "Add two Scripture lesson references before loading ESV text.", 422
-        )
+    lesson_references = [str(ref).strip() for ref, _pages in lessons]
     references = [
         str(weekly.get("call_to_worship", "")).strip(),
         str(weekly.get("memory_verse_ref", "")).strip(),
-        str(lessons[0][0] if isinstance(lessons[0], (list, tuple)) and lessons[0] else "").strip(),
-        str(lessons[1][0] if isinstance(lessons[1], (list, tuple)) and lessons[1] else "").strip(),
+        *lesson_references,
     ]
-    labels = (
+    labels = [
         "Call to Worship reference",
         "Memory Verse reference",
-        "First Scripture lesson reference",
-        "Second Scripture lesson reference",
-    )
+        *(f"Scripture lesson {index} reference" for index in range(1, len(lessons) + 1)),
+    ]
     missing = [label for label, reference in zip(labels, references) if not reference]
     if missing:
         raise ESVLookupError("Add " + ", ".join(missing) + " and try again.", 422)
 
     passages = (lookup or lookup_esv_passages)(references)
-    if len(passages) != 4:
+    if len(passages) != len(references):
         raise ESVLookupError("The ESV API returned an incomplete Scripture response.")
 
     hydrated = deepcopy(data)
     weekly_out = hydrated["weekly"]
     weekly_out["memory_verse_text"] = passages[1].text
     weekly_out["large_print"]["call_to_worship_text"] = passages[0].text
-    weekly_out["large_print"]["first_lesson_label"] = lesson_heading(references[2])
-    weekly_out["large_print"]["first_lesson_text"] = passages[2].text
-    weekly_out["large_print"]["second_lesson_label"] = lesson_heading(references[3])
-    weekly_out["large_print"]["second_lesson_text"] = passages[3].text
+    lesson_texts = [
+        (lesson_heading(reference), passage.text)
+        for reference, passage in zip(lesson_references, passages[2:])
+    ]
+    for index, key in enumerate(("first", "second")):
+        label, text = lesson_texts[index] if index < len(lesson_texts) else ("", "")
+        weekly_out["large_print"][f"{key}_lesson_label"] = label
+        weekly_out["large_print"][f"{key}_lesson_text"] = text
+    weekly_out["additional_lesson_texts"] = lesson_texts[2:]
     hydrated["insert"]["memory_verse_text"] = passages[1].text
     return hydrated

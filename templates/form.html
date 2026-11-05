@@ -221,7 +221,7 @@
         <span id="esv-lookup-status" class="esv-lookup-status" aria-live="polite"></span>
       </div>
       <p class="section-note">
-        Automatic ESV uses the Call to Worship, Memory Verse, and first two lesson
+        Automatic ESV uses the Call to Worship, Memory Verse, and all Scripture Lesson
         references. The official wording is read-only, verse numbers are hidden in
         generated files, and the lesson headings are inferred automatically.
       </p>
@@ -271,19 +271,29 @@
         {% endfor %}
       </div>
       <button type="button" class="btn small add-row" data-target="weekly.scripture_lessons">+ Add lesson</button>
-      <div class="lesson-texts">
-      {% for ordinal, key in [("First", "first"), ("Second", "second")] %}
+      {% macro lesson_panel(label="", text="") %}
         <details class="content-panel">
-          <summary>{{ ordinal }} lesson text <span class="hint">Review full passage</span></summary>
-          <label>{{ ordinal }} lesson label
-            <input type="text" data-key="weekly.large_print.{{ key }}_lesson_label" value="{{ data.weekly.large_print[key + '_lesson_label'] }}">
+          <summary><span data-lesson-title>Lesson text</span> <span class="hint">Review full passage</span></summary>
+          <label>Lesson label
+            <input type="text" data-lesson-label value="{{ label }}">
           </label>
-          <label>{{ ordinal }} scripture lesson — full text
-            <textarea data-key="weekly.large_print.{{ key }}_lesson_text" rows="10">{{ data.weekly.large_print[key + '_lesson_text'] }}</textarea>
+          <label>Scripture lesson — full text
+            <textarea data-lesson-text rows="10">{{ text }}</textarea>
           </label>
         </details>
-      {% endfor %}
+      {% endmacro %}
+      <div class="lesson-texts">
+        {% for lesson in data.weekly.scripture_lessons %}
+          {% if loop.index <= 2 %}
+            {% set key = "first" if loop.first else "second" %}
+            {{ lesson_panel(data.weekly.large_print[key + "_lesson_label"], data.weekly.large_print[key + "_lesson_text"]) }}
+          {% else %}
+            {% set extra = (data.weekly.additional_lesson_texts | default([]))[loop.index0 - 2] | default(["", ""]) %}
+            {{ lesson_panel(extra[0], extra[1]) }}
+          {% endif %}
+        {% endfor %}
       </div>
+      <template id="tpl-lesson-text">{{ lesson_panel() }}</template>
       <p class="esv-copyright">
         Scripture quotations marked “ESV” are from the ESV® Bible (The Holy Bible,
         English Standard Version®), © 2001 by Crossway, a publishing ministry of

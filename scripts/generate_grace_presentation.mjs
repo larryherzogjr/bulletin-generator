@@ -574,29 +574,30 @@ export async function generatePresentation(blob, outputPath) {
   const template = CREED_TEMPLATES[creed];
   if (!template) throw new Error("Select the Apostles’, Nicene, or Athanasian Creed for Grace before generating the PowerPoint. When Different is selected, use Confession for Grace (PowerPoint).");
 
-  const lessons = Array.isArray(weekly.scripture_lessons) ? weekly.scripture_lessons : [];
-  if (lessons.length < 2) throw new Error("Add two scripture lesson references before generating the PowerPoint.");
-  const firstReference = requireText(lessons[0]?.[0], "First scripture lesson reference");
-  const secondReference = requireText(lessons[1]?.[0], "Second scripture lesson reference");
+  const lessonTexts = [
+    largePrint.first_lesson_text,
+    largePrint.second_lesson_text,
+    ...(weekly.additional_lesson_texts ?? []).map(([, text]) => text),
+  ];
+  const lessons = (weekly.scripture_lessons ?? []).map(([ref], index) => {
+    const reference = requireText(ref, `Scripture lesson ${index + 1} reference`);
+    const chunks = splitScriptureSlideTexts(lessonTexts[index]);
+    if (!chunks.length) {
+      throw new Error(`Full scripture text for ${reference} is required before generating the PowerPoint.`);
+    }
+    return { reference, heading: lessonHeading(reference), chunks };
+  });
+  if (!lessons.length) throw new Error("Add a Scripture lesson reference before generating the PowerPoint.");
   const sermonReference = requireText(
     displayReference(weekly.sermon_text),
     "Sermon scripture reference",
   );
-  const firstHeading = lessonHeading(firstReference);
-  const secondHeading = lessonHeading(secondReference);
-
   const callReference = requireText(weekly.call_to_worship, "Call to Worship reference");
   const callChunks = splitScriptureSlideTexts(largePrint.call_to_worship_text, 340);
   const memoryReference = requireText(weekly.memory_verse_ref, "Memory Verse reference");
   const memoryChunks = splitScriptureSlideTexts(weekly.memory_verse_text, 300);
-  const firstLessonChunks = splitScriptureSlideTexts(largePrint.first_lesson_text);
-  const secondLessonChunks = splitScriptureSlideTexts(largePrint.second_lesson_text);
   if (!callChunks.length) throw new Error("Call to Worship full text is required before generating the PowerPoint.");
   if (!memoryChunks.length) throw new Error("Memory Verse text is required before generating the PowerPoint.");
-  if (!firstLessonChunks.length || !secondLessonChunks.length) {
-    throw new Error("Both full scripture lesson texts are required before generating the PowerPoint.");
-  }
-
   const outputDir = path.dirname(outputPath);
   const outputName = path.basename(outputPath);
   await fs.mkdir(outputDir, { recursive: true });
@@ -680,51 +681,31 @@ export async function generatePresentation(blob, outputPath) {
   }
   addSlide(presentation, COMMON.postMemoryBlank);
 
-  addSlide(
-    presentation,
-    COMMON.firstLessonTitle,
-    replaceElementText("Content Placeholder 2", [
-      ["Old Testament Lesson", firstHeading],
-      ["Job 38:4-18", firstReference],
-    ]),
-  );
-  for (const chunk of firstLessonChunks) {
+  for (const [index, lesson] of lessons.entries()) {
+    const first = index === 0;
+    const replacements = first
+      ? [["Old Testament Lesson", lesson.heading], ["Job 38:4-18", lesson.reference]]
+      : [["Gospel Lesson", lesson.heading], ["Matthew 14:22-33", lesson.reference]];
     addSlide(
       presentation,
-      COMMON.firstLessonBody,
-      composeCallbacks(
-        replaceElementText("Title 1", [
-          ["Old Testament Lesson", firstHeading],
-          ["Job 38:4-18", firstReference],
-        ]),
-        setElementTextAndFont("Content Placeholder 2", chunk.text, chunk.fontSize),
-      ),
+      first ? COMMON.firstLessonTitle : COMMON.secondLessonTitle,
+      replaceElementText(first ? "Content Placeholder 2" : "Title 1", replacements),
     );
-  }
-  addSlide(presentation, COMMON.postFirstLessonBlank);
-
-  addSlide(
-    presentation,
-    COMMON.secondLessonTitle,
-    replaceElementText("Title 1", [
-      ["Gospel Lesson", secondHeading],
-      ["Matthew 14:22-33", secondReference],
-    ]),
-  );
-  for (const chunk of secondLessonChunks) {
+    for (const chunk of lesson.chunks) {
+      addSlide(
+        presentation,
+        first ? COMMON.firstLessonBody : COMMON.secondLessonBody,
+        composeCallbacks(
+          replaceElementText("Title 1", replacements),
+          setElementTextAndFont("Content Placeholder 2", chunk.text, chunk.fontSize),
+        ),
+      );
+    }
     addSlide(
       presentation,
-      COMMON.secondLessonBody,
-      composeCallbacks(
-        replaceElementText("Title 1", [
-          ["Gospel Lesson", secondHeading],
-          ["Matthew 14:22-33", secondReference],
-        ]),
-        setElementTextAndFont("Content Placeholder 2", chunk.text, chunk.fontSize),
-      ),
+      first && lessons.length > 1 ? COMMON.postFirstLessonBlank : COMMON.postSecondLessonBlank,
     );
   }
-  addSlide(presentation, COMMON.postSecondLessonBlank);
   addSlide(presentation, COMMON.gospelResponse);
 
   for (const slideNumber of template.creedSlides) addSlide(presentation, slideNumber);

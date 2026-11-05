@@ -34,7 +34,7 @@ numbers, events split into two sections).
 - Eight logical portrait pages are imposed as `8|1, 2|7, 6|3, 4|5`.
 - Logical pages 1, 2, 7, and 8 enlarge the verified bulletin/insert panels.
 - Logical pages 3-6 contain, in reading order: Call to Worship Psalm; first
-  hymn; response; first and second lessons; response; selected creed; response;
+  hymn; response; all Scripture lessons in order; response; selected creed; response;
   second hymn; third hymn; and doxology.
 - The expanded worship text starts at 16pt, grows as large as 20pt when space
   permits, and reduces uniformly across all four reading pages until every
@@ -73,6 +73,7 @@ exact shape. Split conceptually into:
   the bulletin retains the generic CONFESSION OF FAITH heading)
 - memory_verse_ref + memory_verse_text (shared with the insert)
 - scripture_lessons (list of (ref, "G-pg …; Z-pg …"))
+- additional_lesson_texts (label and text pairs for lessons after the first two)
 - scripture_text_source (manual text, or transient official ESV lookup)
 - opening_hymn / sermon_hymn / closing_hymn, each with independent
   `{grace: {num, title}, zion: {num, title}}` entries
