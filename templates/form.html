@@ -143,6 +143,18 @@
         </div>
       </div>
 
+      <div class="optional" data-optional="weekly.youth_sunday">
+        <label class="toggle">
+          <input type="checkbox" data-enable
+                 {% if data.weekly.youth_sunday.enabled %}checked{% endif %}>
+          <strong>Youth Sunday</strong> <span class="hint">prints after the Confession of Faith</span>
+        </label>
+        <div class="opt-body">
+          <input type="text" data-text aria-label="Senior sharing names" placeholder="Senior sharing names"
+                 value="{{ data.weekly.youth_sunday.text }}">
+        </div>
+      </div>
+
     </section>
 
     <!-- ===================== MUSIC ===================== -->

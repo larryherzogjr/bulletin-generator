@@ -128,6 +128,9 @@
     <div class="para lessons"><span class="lead">SCRIPTURE LESSONS</span><span class="lesson-list">{% for ref, pgs in w.scripture_lessons %}{{ ref }} ({{ pgs }}){% if not loop.last %}<br>{% endif %}{% endfor %}</span></div>
 
     <div class="label">CONFESSION OF FAITH{% if w.confession_of_faith %} ~ {{ w.confession_of_faith }}{% endif %}</div>
+    {% if w.youth_sunday is defined and w.youth_sunday.enabled %}
+    <div class="label-tight">SENIOR SHARING{% if w.youth_sunday.text %} ~ {{ w.youth_sunday.text }}{% endif %}</div>
+    {% endif %}
     <div class="label-tight">SPECIAL MUSIC{% if w.special_music %} ~ {{ w.special_music }}{% endif %}</div>
     <div class="label-tight">OFFERING</div>
 

@@ -56,6 +56,38 @@ def test_full_http_flow_and_download_headers(client, sample_blob):
     assert client.get("/weeks/999/edit").status_code == 404
 
 
+def test_youth_sunday_saves_names_and_prints_after_confession(client, sample_blob):
+    week_id = _seed(client)
+    edit_url = f"/weeks/{week_id}/edit"
+    bulletin_url = f"/weeks/{week_id}/bulletin.pdf"
+
+    def bulletin_text():
+        response = client.get(bulletin_url)
+        assert response.status_code == 200
+        return PdfReader(BytesIO(response.data)).pages[0].extract_text()
+
+    edit = client.get(edit_url).data
+    assert edit.index(b"Holy Communion</strong>") < edit.index(b"Youth Sunday</strong>")
+    assert b"prints after the Confession of Faith" in edit
+    assert b"checked" not in edit.split(b'data-optional="weekly.youth_sunday"', 1)[1].split(b"</label>", 1)[0]
+    assert "SENIOR SHARING" not in bulletin_text()
+
+    payload = deepcopy(sample_blob)
+    youth_sunday = {"enabled": True, "text": "Jamie & Taylor"}
+    payload["weekly"]["youth_sunday"] = youth_sunday
+    assert client.post(f"/weeks/{week_id}", json=payload).status_code == 200
+    block = client.get(edit_url).data.split(b'data-optional="weekly.youth_sunday"', 1)[1]
+    assert b"checked" in block.split(b"</label>", 1)[0]
+    assert b'value="Jamie &amp; Taylor"' in block.split(b"</section>", 1)[0]
+    text = bulletin_text()
+    assert text.index("CONFESSION OF FAITH") < text.index("SENIOR SHARING ~ Jamie & Taylor")
+    assert text.index("SENIOR SHARING ~ Jamie & Taylor") < text.index("SPECIAL MUSIC")
+
+    youth_sunday["enabled"] = False
+    assert client.post(f"/weeks/{week_id}", json=payload).status_code == 200
+    assert "SENIOR SHARING" not in bulletin_text()
+
+
 @pytest.mark.parametrize("kind", ["bulletin", "insert"])
 @pytest.mark.parametrize("download", [False, True])
 def test_print_ready_pdf_pages_and_disposition(client, kind, download):

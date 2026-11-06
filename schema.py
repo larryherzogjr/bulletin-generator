@@ -222,7 +222,7 @@ def blank_blob() -> dict:
             "additional_lesson_texts": [],
             # Optional sections. Each has an `enabled` flag; when off they don't
             # render at all. Baptism has short worship-panel names plus its
-            # events-panel announcement; Confirmation has one free-form line.
+            # events-panel announcement.
             "baptism": {
                 "enabled": False,
                 "text": "",          # family/names before ORDER OF SERVICE
@@ -236,6 +236,7 @@ def blank_blob() -> dict:
             "sermon_hymn": {"grace": {"num": "", "title": ""}, "zion": {"num": "", "title": ""}},
             "closing_hymn": {"grace": {"num": "", "title": ""}, "zion": {"num": "", "title": ""}},
             "special_music": "",   # optional text after "SPECIAL MUSIC~ "
+            "youth_sunday": {"enabled": False, "text": ""},
             # after the closing hymn:
             "confirmation": {"enabled": False, "text": ""},
             "communion": {"enabled": False, "grace": False, "zion": False},
@@ -384,7 +385,7 @@ def _bool(v) -> bool:
 
 
 def _text_section(d) -> dict:
-    """Simple optional {enabled, text} section (currently Confirmation)."""
+    """Normalize an optional section with one free-form text field."""
     d = d if isinstance(d, dict) else {}
     return {"enabled": _bool(d.get("enabled")), "text": _s(d.get("text"))}
 
@@ -602,6 +603,7 @@ def normalize_blob(blob: dict) -> dict:
         w[h] = _hymn(w_in.get(h))
     w["confirmation"] = _text_section(w_in.get("confirmation"))
     w["communion"] = _communion(w_in.get("communion"))
+    w["youth_sunday"] = _text_section(w_in.get("youth_sunday"))
     w["grace_events"] = _events(w_in.get("grace_events"))
     w["zion_events"] = _events(w_in.get("zion_events"))
     lp_in = w_in.get("large_print", {}) if isinstance(w_in.get("large_print"), dict) else {}
