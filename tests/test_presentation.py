@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 import pytest
+from pypdf import PdfReader
 
 from presentation import render_grace_presentation
 
@@ -181,6 +182,40 @@ def test_baptism_slide_allows_a_blank_name(sample_blob):
     baptism = texts.index("Baptism")
     assert texts[baptism + 1] == ""
     assert "Alora Christensen" not in "\n".join(texts)
+
+
+def test_advent_checkbox_controls_bulletin_and_powerpoint(client, sample_blob):
+    assert client.post("/weeks/new-from-sample").status_code == 302
+    payload = deepcopy(sample_blob)
+    label = b"<strong>Advent (candle lighting)</strong>"
+    title = "Lighting of the Advent Candle"
+
+    for enabled in (True, False):
+        payload["weekly"]["advent_candle_lighting"] = enabled
+        assert client.post("/weeks/1", json=payload).status_code == 200
+
+        edit = client.get("/weeks/1/edit").data
+        assert edit.index(b"<strong>Youth Sunday</strong>") < edit.index(label)
+        checkbox = edit.split(b'data-key="weekly.advent_candle_lighting"', 1)[1]
+        assert (b"checked" in checkbox.split(b">", 1)[0]) == enabled
+        assert b"prints after the Announcements" in checkbox.split(b"</label>", 1)[0]
+
+        bulletin = client.get("/weeks/1/bulletin.pdf")
+        assert bulletin.status_code == 200
+        text = PdfReader(io.BytesIO(bulletin.data)).pages[0].extract_text()
+        assert (title in text) == enabled
+        if enabled:
+            assert text.index("ANNOUNCEMENTS ~ Opening Prayer") < text.index(title)
+            assert text.index(title) < text.index("Call to Worship")
+
+        deck = client.get("/weeks/1/grace-presentation.pptx")
+        assert deck.status_code == 200
+        archive, _presentation, parts = _ordered_slides(deck.data)
+        with archive:
+            slides = [_normalized_slide_text(ET.fromstring(archive.read(part))) for part in parts]
+        assert slides.count(title) == int(enabled)
+        call = next(index for index, text in enumerate(slides) if text.startswith("Call to Worship"))
+        assert slides[call - 1] == (title if enabled else "")
 
 
 def test_food_at_grace_appends_table_prayer_between_blank_slides(sample_blob):

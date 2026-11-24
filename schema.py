@@ -14,7 +14,7 @@ Shape (three sections, matching the render functions):
     liturgical_day, date, call_to_worship, order_of_service,
     confession_of_faith (one of CREEDS, or "" for Different),
     grace_confession_of_faith (one of CREEDS, or "" until selected),
-    food_at_grace, preacher, sermon_text,
+    food_at_grace, advent_candle_lighting, preacher, sermon_text,
     scripture_text_source ("manual" or transient "esv"),
     memory_verse_ref, memory_verse_text,                  # shared w/ insert
     grace_events_banner, zion_events_banner               # str
@@ -237,6 +237,7 @@ def blank_blob() -> dict:
             "closing_hymn": {"grace": {"num": "", "title": ""}, "zion": {"num": "", "title": ""}},
             "special_music": "",   # optional text after "SPECIAL MUSIC~ "
             "youth_sunday": {"enabled": False, "text": ""},
+            "advent_candle_lighting": False,
             # after the closing hymn:
             "confirmation": {"enabled": False, "text": ""},
             "communion": {"enabled": False, "grace": False, "zion": False},
@@ -604,6 +605,7 @@ def normalize_blob(blob: dict) -> dict:
     w["confirmation"] = _text_section(w_in.get("confirmation"))
     w["communion"] = _communion(w_in.get("communion"))
     w["youth_sunday"] = _text_section(w_in.get("youth_sunday"))
+    w["advent_candle_lighting"] = _bool(w_in.get("advent_candle_lighting"))
     w["grace_events"] = _events(w_in.get("grace_events"))
     w["zion_events"] = _events(w_in.get("zion_events"))
     lp_in = w_in.get("large_print", {}) if isinstance(w_in.get("large_print"), dict) else {}

@@ -110,6 +110,9 @@
       <div class="center prelude">{{ who }} ~ {{ names }}</div>
     {% endfor %}
     <div class="label-tight">ANNOUNCEMENTS ~ Opening Prayer</div>
+    {% if w.advent_candle_lighting %}
+    <div class="label-tight">Lighting of the Advent Candle</div>
+    {% endif %}
     <div class="label-tight">Call to Worship ~ {{ w.call_to_worship }}</div>
 
     {{ hymn(w.opening_hymn) }}

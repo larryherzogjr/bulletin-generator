@@ -48,7 +48,10 @@ def _node_executable() -> str:
 
 def render_grace_presentation(data: dict) -> bytes:
     """Return an editable Grace worship presentation as PPTX bytes."""
-    if not BUILDER.is_file() or any(not template.is_file() for template in TEMPLATES):
+    templates = TEMPLATES
+    if data.get("weekly", {}).get("advent_candle_lighting"):
+        templates += (TEMPLATE_DIR / "lighting-of-the-advent-candle.pptx",)
+    if not BUILDER.is_file() or any(not template.is_file() for template in templates):
         raise PresentationGenerationError(
             "PowerPoint generation is unavailable because its templates are missing."
         )

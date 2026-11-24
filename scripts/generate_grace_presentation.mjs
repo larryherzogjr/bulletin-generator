@@ -16,6 +16,7 @@ const TEMPLATE_DIR = path.join(APP_DIR, "presentation_templates");
 const ROOT_TEMPLATE = "empty-root.pptx";
 const BAPTISM_TEMPLATE = "normal-apostles-baptism.pptx";
 const COMMUNION_TEMPLATE = "normal-apostles-communion.pptx";
+const ADVENT_TEMPLATE = "lighting-of-the-advent-candle.pptx";
 
 const CREED_TEMPLATES = {
   "Apostles' Creed": {
@@ -620,6 +621,10 @@ export async function generatePresentation(blob, outputPath) {
 
   // The neutral root contributes the opening blank slide. Keeping it avoids
   // dangling root-slide relationships in older PowerPoint runtimes.
+  if (weekly.advent_candle_lighting) {
+    presentation.load(ADVENT_TEMPLATE, "advent");
+    addSlide(presentation, 1, undefined, "advent");
+  }
   addSlide(
     presentation,
     COMMON.callTitle,
